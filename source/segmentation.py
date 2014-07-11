@@ -1,0 +1,6 @@
+'''
+Segmentation
+============
+
+Performs image segmentation
+'''
