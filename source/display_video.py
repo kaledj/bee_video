@@ -31,8 +31,7 @@ def show_video(filename):
 
 def main():
 	#video = load_local("../videos/live_video/testmp4.mp4")
-	video = load_local("../videos/test90fps.h264")
-	show_video(video)
+	show_video("../videos/test714MKV.mkv")
 
 if __name__ == '__main__':
 	main()
