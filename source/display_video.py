@@ -5,33 +5,54 @@ Video Player
 Displays the original source video with any additional data
 such as track lines drawn on top. 
 '''
-
+import numpy as np
 import cv2
 from video_loader import load_local
+import segmentation
 
 def show_video(filename):
-	vidcapture = load_local(filename)
-	nframes = int(vidcapture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) # namespacing legacy openCV: cv2.cv.*
-	frame_num= int(vidcapture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES))
-	print "Frames: %s" %nframes
-	fps = vidcapture.get(cv2.cv.CV_CAP_PROP_FPS)
-	print "FPS value: %s" %fps
+    vidcapture = load_local(filename)
+    nframes = int(vidcapture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) # namespacing legacy openCV: cv2.cv.*
+    frame_num= int(vidcapture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES))
+    fps = vidcapture.get(cv2.cv.CV_CAP_PROP_FPS)
 
-	ret, frame = vidcapture.read()
-	height, width, depth = frame.shape
-	while ret and cv2.waitKey(int(1/fps*100)) != 27:
-	    cv2.putText(frame, "Frame: %d FPS: %d"%(frame_num, fps), 
-	    	(0, height-2), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 
-	    	lineType=cv2.CV_AA)
-	    cv2.imshow("frameWindow", frame)
-	    ret, frame = vidcapture.read()
-	    frame_num += 1
-	vidcapture.release()
-	cv2.destroyWindow("frameWindow")
+    ret, frame = vidcapture.read()
+    vres, hres, channels = frame.shape
+
+    # Initialize bg model
+    frameBuffer = np.zeros((100, vres, hres))
+    for i in range(100):
+        ret, frame = vidcapture.read()
+        frame2Buff = cv2.cvtColor(frame, cv2.cv.CV_BGR2GRAY)
+        #cv2.GaussianBlur(frame2Buff, (5,5), 0, frame2Buff, 0)
+        frameBuffer[i] = frame2Buff
+    bgModel = segmentation.initBGM(frameBuffer)
+    cv2.imshow("Background Model", bgModel)
+
+    while ret and cv2.waitKey(int(1/fps*1000)) != 27:
+        frameGray = cv2.cvtColor(frame, cv2.cv.CV_BGR2GRAY)
+        #cv2.GaussianBlur(frameGray, (5, 5), 0, frameGray, 0)
+
+        cv2.putText(frame, "Frame: %d FPS: %d"%(frame_num, fps), 
+            (0, vres-2), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 
+            lineType=cv2.CV_AA)
+        
+        # Get mask using current background model
+        dFrame = np.abs(bgModel.astype(np.int) - frameGray.astype(np.int))
+        threshold, fgmask = segmentation.fgMask(dFrame)
+        # Update background model
+        segmentation.updateBGM(bgModel, dFrame, frameGray, threshold, 10)
+        # Show masked frame
+        cv2.imshow("frameWindow", frameGray * fgmask)
+        
+        ret, frame = vidcapture.read()
+        frame_num += 1
+    vidcapture.release()
+    cv2.destroyWindow("frameWindow")
 
 def main():
-	#video = load_local("../videos/live_video/testmp4.mp4")
-	show_video("../videos/test714MKV.mkv")
+    #video = load_local("../videos/live_video/testmp4.mp4")
+    show_video("../videos/716emptyBG.h264")
 
 if __name__ == '__main__':
-	main()
+    main()
