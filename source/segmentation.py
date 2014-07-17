@@ -7,20 +7,35 @@ Performs environment modeling for the purpose of motion segmentation
 
 import numpy as np
 import cv2
+from itertools import izip
 
-cap = cv2.VideoCapture('../videos/test714.h264')
+def initBGM(initialFrames):
+    N, h, w = initialFrames.shape
+    bgModel = (np.sum(initialFrames, axis=0) / N).astype(np.uint8)
+    return bgModel
 
-fgbg = cv2.BackgroundSubtractorMOG2(20, 4, True)
+def bgSub(currentFrame, bgModel):
+    return np.abs(currentFrame - bgModel)
 
-while(1):
-    ret, frame = cap.read()
+def adaptiveThreshold(differenceFrame):
+    thresh, frame = cv2.threshold(differenceFrame.astype(np.uint8), 0, 255, 
+        cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    return thresh
 
-    fgmask = fgbg.apply(frame)
+def fgMask(differenceFrame):
+    #adaptiveThresh = 30
+    adaptiveThresh = adaptiveThreshold(differenceFrame)
+    print "Current threshold:", adaptiveThresh
+    return adaptiveThresh, (differenceFrame >= adaptiveThresh)
 
-    cv2.imshow('frame',fgmask)
-    k = cv2.waitKey(30) & 0xff
-    if k == 27:
-        break
+def updateBGM(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThresh):
+    learnRate = .1
+    height, width = bgModel.shape
+    
 
-cap.release()
-cv2.destroyAllWindows()
+    fixedThreshMask = differenceFrame <= fixedThresh
+    adaptiveThreshMask = (differenceFrame < adaptiveThresh) & (differenceFrame >= fixedThresh)
+
+    bgModel[fixedThreshMask] = currentFrame[fixedThreshMask]
+    bgModel[adaptiveThreshMask] = currentFrame[adaptiveThreshMask]*learnRate \
+        + bgModel[adaptiveThreshMask]*(1-learnRate)
