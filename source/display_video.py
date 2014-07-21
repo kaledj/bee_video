@@ -31,28 +31,33 @@ def show_video(filename):
 
     while ret and cv2.waitKey(int(1/fps*1000)) != 27:
         frameGray = cv2.cvtColor(frame, cv2.cv.CV_BGR2GRAY)
-        #cv2.GaussianBlur(frameGray, (5, 5), 0, frameGray, 0)
+        #cv2.GaussianBlur(frameGray, (5,5), 0, frameGray, 0)
 
         cv2.putText(frame, "Frame: %d FPS: %d"%(frame_num, fps), 
             (0, vres-2), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 
             lineType=cv2.CV_AA)
         
-        # Get mask using current background model
+        # Get mask using current background model and filter it
         dFrame = np.abs(bgModel.astype(np.int) - frameGray.astype(np.int))
         threshold, fgmask = segmentation.fgMask(dFrame)
-        # Update background model
-        segmentation.updateBGM(bgModel, dFrame, frameGray, threshold, 10)
+
+        kernel = np.ones((3,3), np.uint8)
+        #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
+        #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
         # Show masked frame
-        cv2.imshow("frameWindow", frameGray * fgmask)
-        
+        cv2.imshow("frameWindow", frame * np.dstack((fgmask, fgmask, fgmask)))
+        cv2.imshow("Background Model", bgModel)
+        # Update background model
+        segmentation.updateBGM_alr(bgModel, dFrame, frameGray, threshold, 5)
+
         ret, frame = vidcapture.read()
         frame_num += 1
     vidcapture.release()
     cv2.destroyWindow("frameWindow")
 
 def main():
-    #video = load_local("../videos/live_video/testmp4.mp4")
     show_video("../videos/716emptyBG.h264")
+    show_video("../videos/live_video/test.avi")
 
 if __name__ == '__main__':
     main()
