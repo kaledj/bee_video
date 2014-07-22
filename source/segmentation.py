@@ -28,6 +28,7 @@ def adaptiveThreshold(differenceFrame):
     thresh, frame = cv2.threshold(differenceFrame.astype(np.uint8), 0, 255, 
         cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     return thresh
+    #return 10
 
 def fgMask(differenceFrame):
     #adaptiveThresh = 30
@@ -50,6 +51,7 @@ def updateBGM(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThres
 
 def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThresh):
     global C_bg
+    print adaptiveThresh
 
     # Variables used in calculation
     lr = np.zeros(bgModel.shape)
@@ -58,9 +60,9 @@ def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedT
     w1 = .5
     w2 = 1 - w1
     sigma1 = adaptiveThresh / 5
-    sigma2 = 15
-    zetaMin = np.ones(bgModel.shape)*30
-    zetaMax = np.ones(bgModel.shape)*150
+    sigma2 = 5
+    zetaMin = np.ones(bgModel.shape)*90
+    zetaMax = np.ones(bgModel.shape)*450
 
     # Calculate first learning rate
     mask = differenceFrame < adaptiveThresh
@@ -87,5 +89,3 @@ def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedT
     bgMask = 1 - bgMask
     C_bg += bgMask
     C_bg *= bgMask
-
-    print lr.dtype, lr1.dtype, lr2.dtype
