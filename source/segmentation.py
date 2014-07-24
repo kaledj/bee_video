@@ -11,6 +11,8 @@ from itertools import izip
 
 # Temporal background count
 C_bg = 0
+# Persistant background model
+M_bg = 0
 
 def initBGM(initialFrames):
     N, h, w = initialFrames.shape
@@ -28,7 +30,7 @@ def adaptiveThreshold(differenceFrame):
     thresh, frame = cv2.threshold(differenceFrame.astype(np.uint8), 0, 255, 
         cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     return thresh
-    #return 10
+    #return 20
 
 def fgMask(differenceFrame):
     #adaptiveThresh = 30
@@ -46,12 +48,9 @@ def updateBGM(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThres
     bgModel[adaptiveThreshMask] = currentFrame[adaptiveThreshMask]*learnRate \
         + bgModel[adaptiveThreshMask]*(1-learnRate)
     bgModel[fixedThreshMask] = currentFrame[fixedThreshMask]
-    print bgModel.dtype
 
-
-def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThresh):
-    global C_bg
-    print adaptiveThresh
+def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fgmask):
+    global C_bg, M_bg
 
     # Variables used in calculation
     lr = np.zeros(bgModel.shape)
@@ -60,9 +59,9 @@ def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedT
     w1 = .5
     w2 = 1 - w1
     sigma1 = adaptiveThresh / 5
-    sigma2 = 5
-    zetaMin = np.ones(bgModel.shape)*90
-    zetaMax = np.ones(bgModel.shape)*450
+    sigma2 = 15
+    zetaMin = 60
+    zetaMax = 200
 
     # Calculate first learning rate
     mask = differenceFrame < adaptiveThresh
@@ -73,19 +72,27 @@ def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedT
 
     # Calculate second learning rate
     mask = C_bg >= zetaMin
-    numerator = (zetaMax[mask] - np.minimum(zetaMax[mask], C_bg[mask]))**2
+    numerator = (np.minimum(zetaMax, C_bg[mask]) - zetaMax)**2
     denominator = sigma2**2
     exponent = -.5*(numerator / denominator)
     lr2[mask] = np.exp(exponent)
 
     # Total learning rate is weighted sum of learning rates
-    lr = w1*lr1 + w2*lr2 
+    lr[:] = w1*lr1 + w2*lr2 
 
     # Update background using learning rates
-    bgModel = lr*currentFrame + (1 - lr)*bgModel
+    bgModel[:] = lr*currentFrame + (1 - lr)*bgModel
+    print bgModel.dtype
 
     # Update temporal count
-    thresh_trash, bgMask = fgMask(differenceFrame)
-    bgMask = 1 - bgMask
-    C_bg += bgMask
-    C_bg *= bgMask
+    bgMask = 1 - fgmask
+    C_bg[:] = bgMask + C_bg
+    C_bg[:] = bgMask * C_bg
+
+    cv2.imshow("Counts", C_bg.astype(np.uint8))
+    cv2.imshow("LR 1", (255 * lr1).astype(np.uint8))
+    cv2.imshow("LR 2", (255 * lr2).astype(np.uint8))
+    
+
+    #print lr
+    #print C_bg
