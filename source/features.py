@@ -30,7 +30,10 @@ def feature_gradientMagnitude(image):
                  + gradY.astype(np.int)**2).astype(np.uint8)
 
 def gradientXY(image):
-    imageGray = cv2.cvtColor(image, cv2.cv.CV_BGR2GRAY)
+    if image.ndim is 3:
+        imageGray = cv2.cvtColor(image, cv2.cv.CV_BGR2GRAY)
+    else:
+        imageGray = image.copy()
     cv2.GaussianBlur(imageGray, (3 ,3), 0, imageGray)
 
     kernelX = np.array([-1, 0, 1]).reshape((3, 1))
