@@ -16,15 +16,12 @@ M_bg = 0
 
 def initBGM(initialFrames):
     N, h, w = initialFrames.shape
-    bgModel = (np.sum(initialFrames, axis=0) / N).astype(np.uint8)
+    global M_bg
+    M_bg = (np.sum(initialFrames, axis=0) / N).astype(np.uint8)
 
-    global C_bg 
-    C_bg = np.zeros((h, w))   
-
-    return bgModel
-
-def bgSub(currentFrame, bgModel):
-    return np.abs(currentFrame - bgModel)
+def bgSub(currentFrame):
+    return np.abs(currentFrame.astype(np.int) 
+            - M_bg.astype(np.int)).astype(np.uint8)
 
 def adaptiveThreshold(differenceFrame):
     thresh, frame = cv2.threshold(differenceFrame.astype(np.uint8), 0, 255, 
@@ -38,16 +35,9 @@ def fgMask(differenceFrame):
     #print "Current threshold:", adaptiveThresh
     return adaptiveThresh, (differenceFrame >= adaptiveThresh).astype(np.uint8)
 
-def updateBGM(bgModel, differenceFrame, currentFrame, adaptiveThresh, fixedThresh):
-    learnRate = .1
-    height, width = bgModel.shape    
-
-    fixedThreshMask = differenceFrame <= fixedThresh
-    adaptiveThreshMask = (differenceFrame < adaptiveThresh) & (differenceFrame >= fixedThresh)
-
-    bgModel[adaptiveThreshMask] = currentFrame[adaptiveThreshMask]*learnRate \
-        + bgModel[adaptiveThreshMask]*(1-learnRate)
-    bgModel[fixedThreshMask] = currentFrame[fixedThreshMask]
+def updateBGM(currentFrame, learningRate):
+    global M_bg
+    M_bg = (1 - learningRate) * M_bg + learningRate * currentFrame
 
 def updateBGM_alr(bgModel, differenceFrame, currentFrame, adaptiveThresh, fgmask):
     global C_bg, M_bg
