@@ -63,7 +63,7 @@ def show_video(filename):
             #box = np.int0(box)
             #cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
             area = cv2.contourArea(contour)
-            avg_area = 
+            #avg_area =
             if area > 200:
                 (x,y),radius = cv2.minEnclosingCircle(contour)
                 center = (int(x),int(y))
