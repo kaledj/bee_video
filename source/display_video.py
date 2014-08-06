@@ -11,8 +11,6 @@ from video_loader import load_local
 import segmentation, features
 import time
 
-video_params = dict(tracking = True)
-
 def show_video(filename):
     vidcapture = load_local(filename)
     nframes = int(vidcapture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) 
@@ -39,6 +37,8 @@ def show_video(filename):
     cv2.imshow("Background Model", segmentation.M_bg)
 
     msPerFrame = 1 / fps * 1000
+    avg = 0
+    count = 0
     while ret:
         timei = time.clock()*1000
 
@@ -47,27 +47,36 @@ def show_video(filename):
         motionImage = ((dFrame >= 20) * 255).astype(np.uint8)
         
         bgDiff = segmentation.bgSub(currFrame)
-        segmentation.updateBGM(currFrame, .05)
+        segmentation.updateBGM(currFrame, .1)
 
         kernel = np.ones((3,3), np.uint8)
-        motionImage = cv2.morphologyEx(motionImage, cv2.MORPH_CLOSE, kernel, iterations=1)
-        motionImage = cv2.morphologyEx(motionImage, cv2.MORPH_OPEN, kernel, iterations=1)
+        #motionImage = cv2.morphologyEx(motionImage, cv2.MORPH_CLOSE, kernel, iterations=1)
+        #motionImage = cv2.morphologyEx(motionImage, cv2.MORPH_OPEN, kernel, iterations=1)
 
-        if video_params['tracking']:
-            contours, hierarchy = cv2.findContours(((bgDiff.copy() >= 20)*255).astype(np.uint8)
-                , cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
-            gm = features.feature_gradientMagnitude(currFrame)
-            cv2.drawContours(colorFrame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
-            for contour in contours:
-                rect =  cv2.minAreaRect(contour)
-                box = cv2.cv.BoxPoints(rect)
-                box = np.int0(box)
-                cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
-            
+        contours, hierarchy = cv2.findContours(((bgDiff.copy() >= 20)*255).astype(np.uint8)
+            , cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
+        gm = features.feature_gradientMagnitude(currFrame)
+        cv2.drawContours(colorFrame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
+        for contour in contours:
+            #rect =  cv2.minAreaRect(contour)
+            #box = cv2.cv.BoxPoints(rect)
+            #box = np.int0(box)
+            #cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
+            area = cv2.contourArea(contour)
+            avg_area = 
+            if area > 200:
+                (x,y),radius = cv2.minEnclosingCircle(contour)
+                center = (int(x),int(y))
+                radius = int(radius)
+                cv2.circle(colorFrame,center,radius,(0,255,0),2)
+
+
+
         cv2.putText(colorFrame, "FPS: %d"%(framerate), (0, vres - 2), 
             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), lineType=cv2.CV_AA)
 
         # Show frames
+
         cv2.imshow("BG Diff", bgDiff)
         cv2.imshow("Motion", motionImage)
         cv2.imshow("Difference", dFrame)
@@ -76,19 +85,18 @@ def show_video(filename):
         # Copy into previous frame and get next frame
         prevFrame = currFrame.copy()
         ret, currFrame = vidcapture.read()
-        if ret: 
+        if ret:
             colorFrame = currFrame.copy()
             currFrame = cv2.cvtColor(currFrame, cv2.cv.CV_BGR2GRAY)
 
         # Timing 
         timef = time.clock()*1000
         timed = timef - timei
-        framerate = framerate*.1 + .9*max(1 / timed*1000, 1 / msPerFrame*1000)
+        framerate = max(1 / timed * 1000, 1 / msPerFrame * 1000)
         wait = max(int(msPerFrame-timed), 1)
         key = cv2.waitKey(wait) 
         if key is 27: break
         if key is 32: cv2.waitKey()
-        if key is 116: video_params['tracking'] ^= True
     vidcapture.release()
     cv2.destroyAllWindows()
 
@@ -96,7 +104,7 @@ def main():
     show_video("../videos/721test.mkv")
     show_video("../videos/video1.mkv")
     show_video("../videos/724video.mkv")
-    show_video("../videos/tonsOfFuckingBees.h264")
+    #show_video("../videos/tonsOfFuckingBees.h264")
 
 if __name__ == '__main__':
     main()
