@@ -38,7 +38,8 @@ def show_video(filename):
 
     msPerFrame = 1 / fps * 1000
     avg = 0
-    count = 0
+    avgarea = 0
+    count = 1
     while ret:
         timei = time.clock()*1000
 
@@ -58,13 +59,25 @@ def show_video(filename):
         gm = features.feature_gradientMagnitude(currFrame)
         cv2.drawContours(colorFrame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
         for contour in contours:
-            #rect =  cv2.minAreaRect(contour)
-            #box = cv2.cv.BoxPoints(rect)
-            #box = np.int0(box)
-            #cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
+            rect =  cv2.minAreaRect(contour)
+            box = cv2.cv.BoxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
             area = cv2.contourArea(contour)
-            #avg_area =
-            if area > 200:
+            print "area", area
+            if area == 0:
+                print "area is zero"
+            elif count == 1:
+                avgarea = area
+                count += 1
+            elif count > 1:
+                avgarea = ((float(count) - 1)/float(count)) * avgarea + (1/float(count)) * area
+                count += 1
+            print "average", avgarea
+            print "count", count
+            #x,y,w,h = cv2.boundingRect(hull)
+            #cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
+            if area >= avgarea:
                 (x,y),radius = cv2.minEnclosingCircle(contour)
                 center = (int(x),int(y))
                 radius = int(radius)
