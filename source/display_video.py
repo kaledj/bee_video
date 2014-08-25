@@ -93,6 +93,7 @@ def show_video(filename):
     cv2.destroyAllWindows()
 
 def main():
+    show_video("../videos/729long.mkv")
     show_video("../videos/721test.mkv")
     show_video("../videos/video1.mkv")
     show_video("../videos/724video.mkv")
