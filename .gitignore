@@ -43,3 +43,4 @@ videos/
 .idea/
 source/test.py
 samples/
+*.vec
