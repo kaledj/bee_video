@@ -96,8 +96,8 @@ def drawcontours(frame, contours):
     pass
 
 def main():
+    show_video("../videos/9-2_rpi9.mkv")
     show_video("../videos/729long.mkv")
-    show_video("../videos/721test.mkv")
     show_video("../videos/video1.mkv")
     show_video("../videos/724video.mkv")
     show_video("../videos/tonsOfFuckingBees.h264")
