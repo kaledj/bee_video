@@ -92,6 +92,9 @@ def show_video(filename):
     vidcapture.release()
     cv2.destroyAllWindows()
 
+def drawcontours(frame, contours):
+    pass
+
 def main():
     show_video("../videos/729long.mkv")
     show_video("../videos/721test.mkv")
