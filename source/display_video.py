@@ -59,11 +59,14 @@ def show_video(filename):
             gm = features.feature_gradientMagnitude(currFrame)
             cv2.drawContours(colorFrame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
             for contour in contours:
-                rect =  cv2.minAreaRect(contour)
-                box = cv2.cv.BoxPoints(rect)
-                box = np.int0(box)
-                cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
+                # rect =  cv2.minAreaRect(contour)
+                # box = cv2.cv.BoxPoints(rect)
+                # box = np.int0(box)
+                # cv2.drawContours(colorFrame, [box], -1, (0,0,255),2)
             
+                x,y,w,h = cv2.boundingRect(contour)
+                cv2.rectangle(colorFrame, (x,y), (x+w, y+h), (0,0,255),2)
+
         cv2.putText(colorFrame, "FPS: %d"%(framerate), (0, vres - 2), 
             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), lineType=cv2.CV_AA)
 

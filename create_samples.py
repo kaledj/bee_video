@@ -9,14 +9,19 @@ input files.
 import sys, os
 
 OPENCV_BIN = "C:/lib/opencv/build/x64/vc12/bin/"
+INPUT_FILES = []
+OUTPUT_FILE = "samples/test.vec"
 
-INPUT_FILES = ["samples/img1.png"]
-OUTPUT_FILE = "test.vec"
+for filename in os.listdir("samples/positive"):
+    INPUT_FILES.append("samples/positive/" + filename)
+    print filename
 
 for input in INPUT_FILES:
     print os.getcwd();
-    os.system(OPENCV_BIN + "opencv_createsamples.exe" + " -vec " + OUTPUT_FILE 
-        + " -img " + input)    
+    os.system(OPENCV_BIN + "opencv_createsamples.exe" 
+        + " -vec " + OUTPUT_FILE 
+        + " -img " + input
+        + " -bg " + "samples/bgfiles.txt")    
 
 
 '''

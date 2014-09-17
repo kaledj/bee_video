@@ -14,11 +14,14 @@ BGR2GRAY = cv2.cv.CV_BGR2GRAY
 INPUT_FILES = []
 OUTPUT_FILES = []
 
+bgfiles = open("samples/bgfiles.txt", 'w')
 for filename in os.listdir("videos"):
     split = filename.split(".")
     if len(split) > 1:
         INPUT_FILES.append("videos/" + filename)
         OUTPUT_FILES.append("samples/negative/" + split[0] + ".jpg")
+        bgfiles.write("negative/" + split[0] + ".jpg\n")
+bgfiles.close()
 
 for input, output in zip(INPUT_FILES, OUTPUT_FILES):
     print "IN: ", input
