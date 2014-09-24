@@ -42,6 +42,8 @@ def show_video(filename):
     while ret:
         timei = time.clock()*1000
 
+        currFrame = cv2.equalizeHist(currFrame)
+
         dFrame = np.abs(prevFrame.astype(np.int) 
                 - currFrame.astype(np.int)).astype(np.uint8)
         motionImage = ((dFrame >= 20) * 255).astype(np.uint8)
@@ -54,8 +56,8 @@ def show_video(filename):
         motionImage = cv2.morphologyEx(motionImage, cv2.MORPH_OPEN, kernel, iterations=1)
 
         if video_params['tracking']:
-            contours, hierarchy = cv2.findContours(((bgDiff.copy() >= 20)*255).astype(np.uint8)
-                , cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
+            contours, hierarchy = cv2.findContours(((bgDiff.copy() >= 20)*255).astype(np.uint8), 
+                cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
             gm = features.feature_gradientMagnitude(currFrame)
             cv2.drawContours(colorFrame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
             for contour in contours:
@@ -93,7 +95,7 @@ def show_video(filename):
         if key is 32: cv2.waitKey()
         if key is 116: video_params['tracking'] ^= True
     vidcapture.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 def drawcontours(frame, contours):
     pass
