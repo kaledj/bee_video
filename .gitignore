@@ -44,5 +44,3 @@ videos/
 source/test.py
 samples/
 *.vec
-
-classifier/
