@@ -1,3 +1,10 @@
+'''
+Detection
+=========
+
+Implements multiple different types of detection. HAAR, SIFT...
+'''
+
 # Local modules
 from video_loader import load_local
 # System modules

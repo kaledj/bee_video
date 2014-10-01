@@ -1,0 +1,10 @@
+samples/positive/test/a0.png 1 175 388 31 49
+samples/positive/test/a1.png 1 384 254 34 53
+samples/positive/test/a2.png 1 81 176 32 60
+samples/positive/test/a3.png 1 241 249 27 35
+samples/positive/test/a4.png 1 259 420 39 38
+samples/positive/test/a5.png 1 172 202 29 60
+samples/positive/test/a6.png 1 16 305 36 44
+samples/positive/test/a7.png 1 121 272 24 54
+samples/positive/test/a8.png 1 106 234 33 68
+samples/positive/test/a9.png 1 283 225 25 52

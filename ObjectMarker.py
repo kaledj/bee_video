@@ -55,8 +55,8 @@ def main():
     global image
     iKey = 0
 
-    input_directory = "C:/Users/shuffleres/Documents/GitHub/bee_video/samples/positive/"
-    output_file = "C:/Users/shuffleres/Desktop/output.txt"
+    input_directory = "samples/positive/test/"
+    output_file = "output.txt"
 
     #Get a file listing of all files within the input directory
     try:
@@ -77,13 +77,13 @@ def main():
 
     sys.stderr.write("Opening directory...")
     # init output of rectangles to the info file
-    os.chdir(input_directory)
+    #os.chdir(input_directory)
     sys.stderr.write("done.\n")
 
     str_prefix = input_directory
 
     try:
-        output = open(output_file, 'r+')
+        output = open(output_file, 'a')
     except IOError:
         sys.stderr.write("Failed to open file %s.\n" % output_file)
         return -1
