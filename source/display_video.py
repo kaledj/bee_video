@@ -16,7 +16,7 @@ video_params = dict(tracking = True)
 def show_video(filename):
     vidcapture = load_local(filename)
     nframes = int(vidcapture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) 
-    frame_num= int(vidcapture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES))
+    frame_num = int(vidcapture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES))
     fps = vidcapture.get(cv2.cv.CV_CAP_PROP_FPS)
     framerate = 0
 

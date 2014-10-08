@@ -10,17 +10,16 @@ import sys, os
 OPENCV_BIN = "C:/lib/opencv/build/x64/vc12/bin/"
 PROGRAM = "opencv_traincascade.exe"
 INPUT_FILE = "samples/test.vec"
-OUTPUT_FILE = "classifier/v2"
-PARAMS = {  "-data": OUTPUT_FILE, 
+OUTPUT_CASCADE_DIR = "classifier/v2verticaldown"
+PARAMS = {  "-data": OUTPUT_CASCADE_DIR, 
             "-vec": INPUT_FILE,
-            "-numStages": 20, 
             "-bg": "samples/bgfiles.txt",
-            "-w": 50, 
-            "-h": 58, 
-            "-precalcValBufSize": 5120,
-            "-precalcIdxBuffSize": 5120,
-            "-numPos": 1800,
-            "-numNeg": 3600,
+            "-w": 54, 
+            "-h": 81, 
+            "-precalcValBufSize": 7168,
+            "-precalcIdxBuffSize": 3072,
+            "-numPos": 900,
+            "-numNeg": 1800,
             "featureType": "HAAR",
             "-mode": "ALL"}
 

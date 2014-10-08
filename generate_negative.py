@@ -1,12 +1,12 @@
 '''
-Generate Negative
-=================
+Generate Negatives
+==================
 
 Creates a static background for a camera to be used in 
 negative sample generation.
 '''
 
-import os, sys, cv2
+import os, sys, cv2, time
 import numpy as np
 
 BGR2GRAY = cv2.cv.CV_BGR2GRAY
@@ -23,6 +23,8 @@ for filename in os.listdir("videos"):
         bgfiles.write("negative/" + split[0] + ".jpg\n")
 bgfiles.close()
 
+count = 0
+ti = time.time()
 for input, output in zip(INPUT_FILES, OUTPUT_FILES):
     print "IN: ", input
     print "OUT: ", output
@@ -35,10 +37,10 @@ for input, output in zip(INPUT_FILES, OUTPUT_FILES):
     frame = cv2.cvtColor(frame, BGR2GRAY)
     vres, hres = frame.shape
 
-    # Average first 3 seconds of frames
-    N = fps * 3
-    frameBuffer = np.zeros((N, vres, hres))
-    for i in range(fps * 3):
+    # Average first N frames
+    N = 500
+    frameBuffer = np.zeros((N, vres, hres), np.uint32)
+    for i in range(N):
         ret, frame = vidcapture.read()
         if ret:
             frame = cv2.cvtColor(frame, BGR2GRAY)
@@ -48,4 +50,7 @@ for input, output in zip(INPUT_FILES, OUTPUT_FILES):
     # Write to file
     if cv2.imwrite(output, bg):
         print input, " background written to: ", output 
-    else : print "Error writing ", input, " to", output
+    else: print "Error writing ", input, " to", output
+    count = count + 1
+tf = time.time()
+print "{0} negatives written in {1} seconds.".format(count, tf - ti)
