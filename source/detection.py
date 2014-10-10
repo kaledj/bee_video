@@ -15,7 +15,7 @@ import numpy as np
 ROI = (230, 230)
 
 def cascadeDetect():
-    cascade = cv2.CascadeClassifier("../classifier/v1/cascade.xml")
+    cascade = cv2.CascadeClassifier("../classifier/v2verticaldown/cascade.xml")
 
     videos = []
     for filename in os.listdir("../videos"):
