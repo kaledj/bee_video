@@ -15,7 +15,7 @@ import numpy as np
 ROI = (230, 230)
 
 def cascadeDetect():
-    cascade = cv2.CascadeClassifier("../classifier/v2verticaldown/cascade.xml")
+    cascade = cv2.CascadeClassifier("../classifier/v2leftside/cascade.xml")
 
     videos = []
     for filename in os.listdir("../videos"):
@@ -29,7 +29,7 @@ def cascadeDetect():
         ret, frame = video.read()
         while ret:
             # frameGray = cv2.cvtColor(frame, cv2.cv.CV_BGR2GRAY)
-            bees = cascade.detectMultiScale(frame, minNeighbors=2)
+            bees = cascade.detectMultiScale(frame, minNeighbors=3)
             for (x, y, w, h) in bees:
                 cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
                 center = (x+(w/2), y+(h/2))
@@ -68,6 +68,10 @@ def siftDetect():
                 exit()
 
 def cross(pt0, pt1, rect):
+    ''' 
+    Determines if the points enter or leave the rectangle.
+    Returns 1 if the points leave the rect, -1 if it enters, or 0 if neither.
+    '''
     pt0Bool = pt0[0]>=rect.corner[0] and pt0[0] <= rect.corner[0]+rect.w and pt0[1]>=rect.corner[1] and pt0[1]<=rect.corner[1]+rect.h
     pt1Bool = pt1[0]>=rect.corner[0] and pt1[0] <= rect.corner[0]+rect.w and pt1[1]>=rect.corner[1] and pt1[1]<=rect.corner[1]+rect.h
     if not pt0Bool and pt1Bool:
