@@ -10,16 +10,14 @@ import sys, os
 
 OPENCV_BIN = "C:/lib/opencv/build/x64/vc12/bin/"
 PROGRAM = "opencv_createsamples.exe"
-INPUT_FILE = "samples/positive/img4seg.png"
+INPUT_FILE = "output.txt"
 OUTPUT_FILE = "samples/test.vec"
 PARAMS = {  "-vec": OUTPUT_FILE, 
-            "-img": INPUT_FILE, 
+            "-info": INPUT_FILE, 
             "-bg": "samples/bgfiles.txt",
-            "-w": 54, 
-            "-h": 81,
+            "-w": 64,
+            "-h": 64,
             "-num": 1000,
-            "-bgcolor": 0,
-            "-bgthresh": 20,
             "-maxidev": 20,
             "-maxxangle": .5,
             "-maxyangle": .5,
@@ -39,6 +37,6 @@ Uses OPENCV create_samples to verify the .vec file
 def show_created_vec(filename):
     os.system(OPENCV_BIN + "opencv_createsamples.exe" 
         + " -vec " + filename 
-        + " -w 54 -h 81 -show")    
+        + " -w 64 -h 64 -show")    
 
 show_created_vec(OUTPUT_FILE)

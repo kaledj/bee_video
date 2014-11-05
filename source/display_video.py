@@ -6,9 +6,9 @@ Displays the original source video with any additional data
 such as track lines drawn on top. 
 '''
 import numpy as np
-import cv2
+import cv2, os, sys
 from video_loader import load_local
-import segmentation, features
+import segmentation, features, keys
 import time
 
 video_params = dict(tracking = True)
@@ -84,6 +84,7 @@ def show_video(filename):
         if ret: 
             colorFrame = currFrame.copy()
             currFrame = cv2.cvtColor(currFrame, cv2.cv.CV_BGR2GRAY)
+            cv2.imshow("2frame", np.concatenate((prevFrame, currFrame), axis = 1))
 
         # Timing 
         timef = time.clock()*1000
@@ -91,21 +92,20 @@ def show_video(filename):
         framerate = framerate*.1 + .9*max(1 / timed*1000, 1 / msPerFrame*1000)
         wait = max(int(msPerFrame-timed), 1)
         key = cv2.waitKey(wait) 
-        if key is 27: break
-        if key is 32: cv2.waitKey()
-        if key is 116: video_params['tracking'] ^= True
+        if key is keys.Q: sys.exit()
+        if key is keys.ESC: break
+        if key is keys.SPACE: cv2.waitKey()
+        if key is keys.T: video_params['tracking'] ^= True
     vidcapture.release()
     # cv2.destroyAllWindows()
 
 def drawcontours(frame, contours):
     pass
 
-def main():
-    show_video("../videos/9-2_rpi9.mkv")
-    show_video("../videos/729long.mkv")
-    show_video("../videos/video1.mkv")
-    show_video("../videos/724video.mkv")
-    show_video("../videos/tonsOfFuckingBees.h264")
-
 if __name__ == '__main__':
-    main()
+    videos = []
+    for filename in os.listdir("../videos"):
+        videos.append("../videos/" + filename)
+    for videofile in videos:
+        if os.path.isfile(videofile):
+            show_video(videofile)  
