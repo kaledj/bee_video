@@ -60,8 +60,9 @@ def bgsub(vidfilename):
         cv2.imshow("Test", img)
         ret, frame = video.read()
         key = cv2.waitKey(5)
-        if key == 32: break
-        elif key == 27: 
+        if key == keys.ESC: break
+        if key == keys.SPACE: cv2.waitKey()
+        if key == keys.Q: 
             exit()
 
 
