@@ -96,9 +96,9 @@ def cascadeDetect(vidfilename):
         cv2.imshow("Video", frame)
         ret, frame = video.read()
         key = cv2.waitKey(5)
-        if key == 32: break
+        if key == 32: cv2.waitKey()
         elif key == 27: 
-            exit()
+            break
 
 def siftDetect(vidfilename):
     video = load_local(vidfilename)
@@ -147,7 +147,7 @@ def surfDetect(vidfilename):
         prevFrame = frame.copy()
         ret, frame = video.read()
         key = cv2.waitKey(1)
-        if key is keys.SPACE: break
+        if key is keys.SPACE: cv2.waitKey()
         elif key is keys.ESC: 
             exit()
 
@@ -175,5 +175,5 @@ if __name__ == '__main__':
         videos.append("../videos/" + filename)
     for videofile in videos:
         if os.path.isfile(videofile):
-            # cascadeDetect(videofile)    
-            surfDetect(videofile)
+            cascadeDetect(videofile)    
+            # surfDetect(videofile)
