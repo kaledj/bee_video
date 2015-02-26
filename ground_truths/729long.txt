@@ -1,65 +1,29 @@
-Position: 178, 322
-Position: 277, 350
-Position: 252, 385
-Position: 286, 458
-Position: 308, 445
-Position: 368, 445
-Position: 484, 442
+Position: 178, 325
+Position: 256, 391
+Position: 274, 341
+Position: 284, 463
+Position: 376, 429
+Position: 480, 439
 Frame: 1
-Clicks: 7
+Clicks: 6
 
-Position: 191, 324
-Position: 280, 357
-Position: 246, 387
-Position: 285, 441
-Position: 305, 449
-Position: 485, 443
+Position: 182, 321
+Position: 276, 349
+Position: 252, 385
+Position: 280, 461
+Position: 368, 447
+Position: 484, 443
 Frame: 2
 Clicks: 6
 
-Position: 198, 328
-Position: 288, 371
-Position: 238, 393
-Position: 263, 413
-Position: 305, 442
-Position: 481, 439
+Position: 190, 325
+Position: 282, 359
+Position: 242, 385
+Position: 284, 447
+Position: 304, 451
+Position: 478, 445
 Frame: 3
 Clicks: 6
 
-Position: 206, 326
-Position: 292, 374
-Position: 236, 388
-Position: 303, 443
-Position: 484, 442
 Frame: 4
-Clicks: 5
-
-Position: 220, 314
-Position: 195, 329
-Position: 250, 388
-Position: 288, 382
-Position: 307, 443
-Position: 487, 441
-Frame: 5
-Clicks: 6
-
-Position: 216, 273
-Position: 211, 334
-Position: 288, 381
-Position: 245, 392
-Position: 306, 444
-Position: 488, 444
-Frame: 6
-Clicks: 6
-
-Position: 207, 223
-Position: 214, 330
-Position: 238, 394
-Position: 291, 393
-Position: 308, 446
-Position: 489, 442
-Frame: 7
-Clicks: 6
-
-Frame: 8
 Clicks: 0

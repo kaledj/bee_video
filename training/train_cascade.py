@@ -26,4 +26,5 @@ PARAMS = {  "-data": OUTPUT_CASCADE_DIR,
 command = OPENCV_BIN + PROGRAM
 for key in PARAMS:
     command = command + " " + key + " " + str(PARAMS[key])
+print("Executing {0}".format(command))
 os.system(command)

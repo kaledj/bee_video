@@ -23,7 +23,8 @@ ret, old_frame = cap.read()
 old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
 p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
-print type(p0), p0.shape
+print type(p0), p0.dtype, p0.shape
+print(p0)
 
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
@@ -33,10 +34,10 @@ while(1):
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # calculate optical flow
-    p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+    nextPts, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
 
     # Select good points
-    good_new = p1[st==1]
+    good_new = nextPts[st==1]
     good_old = p0[st==1]
 
     # draw the tracks

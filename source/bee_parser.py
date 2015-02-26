@@ -1,5 +1,6 @@
 __authors__ = 'shuffleres', 'smithc4'
 
+import keys
 import numpy as np
 import cv2
 import cv
@@ -13,24 +14,15 @@ countClicks = 0
 def parser(videoname):
 
     a,b,c = videoname.split("/")
+
     stfile = c.split(".")
     global storefile
     storefile = stfile[0]
     global string
     string = ""
     vidcapture = load_local(videoname)
-    nframes = int(vidcapture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-    frame_num = int(vidcapture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES))
-    fps = vidcapture.get(cv2.cv.CV_CAP_PROP_FPS)
-    framerate = 0
 
-    ret, prevFrame = vidcapture.read()
-    prevFrame = cv2.cvtColor(prevFrame, cv2.cv.CV_BGR2GRAY)
     ret, currFrame = vidcapture.read()
-    colorFrame = currFrame.copy()
-    currFrame = cv2.cvtColor(currFrame, cv2.cv.CV_BGR2GRAY)
-
-    msPerFrame = 1 / fps * 1000
     countFrame = 0
     cv2.namedWindow("Current frame")
     cv2.setMouseCallback("Current frame", on_mouse)
@@ -41,31 +33,21 @@ def parser(videoname):
     print("Press the left mouse button on the frame to count the bees.")
 
     while(ret):
-
-        timei = time.clock()*1000
-        timef = time.clock()*1000
-        timed = timef - timei
-        framerate = framerate*.1 + .9*max(1 / 60*1000, 1 / msPerFrame*1000)
-        wait = max(int(msPerFrame-timed), 1)
-        key = cv2.waitKey(wait)
-
-        if key is 113: exit()
-        if key is 27: break
-        if key is 32:
-            countFrame = countFrame + 1
-            prevFrame = currFrame.copy()
+        cv2.imshow("Current frame", currFrame)
+        key = cv2.waitKey()
+        if key is 113:
+            exit()
+        if key is keys.ESC:
+            break
+        if key is keys.SPACE:
+            countFrame += 1
+            global countClicks
+            print "Frame: " + str(countFrame) + "\n"
+            print "Clicks: " + str(countClicks) + "\n"
+            string += ("Frame: " + str(countFrame) + "\n")
+            string += ("Clicks: " + str(countClicks) + "\n\n")
+            countClicks = 0
             ret, currFrame = vidcapture.read()
-
-            if ret:
-                colorFrame = currFrame.copy()
-                currFrame = cv2.cvtColor(currFrame, cv2.cv.CV_BGR2GRAY)
-                print "Frame: " + str(countFrame) + "\n"
-                print "Clicks: " + str(countClicks) + "\n"
-                string += ("Frame: " + str(countFrame) + "\n")
-                string += ("Clicks: " + str(countClicks) + "\n\n")
-                global countClicks
-                countClicks = 0
-        cv2.imshow("Current frame", colorFrame)
     if string:
         string += ("Frame: " + str(countFrame+1) + "\n")
         string += ("Clicks: " + str(countClicks) + "\n")

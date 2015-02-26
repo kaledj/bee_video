@@ -56,7 +56,7 @@ def main():
     iKey = 0
 
     input_directory = "samples/positive/test/"
-    output_file = "output.txt"
+    output_file = "annotations.dat"
 
     #Get a file listing of all files within the input directory
     try:
@@ -102,28 +102,37 @@ def main():
 
         #  Work on current image
         cv.ShowImage(window_name, image)
-        # Need to figure out waitkey returns.
-        # <ESC> = 43		exit program
-        # <Space> = 48		add rectangle to current image
-        # <x> = 136		skip image
-        iKey = cv.WaitKey(0) % 255
-        # This is ugly, but is actually a simplification of the C++.
-        if iKey == 27:
-            cv.DestroyWindow(window_name)
-            return 0
-        elif iKey == 32:
-            num_of_rec += 1
-            # Currently two draw directions possible:
-            # from top left to bottom right or vice versa
-            if (roi_x0 < roi_x1 and roi_y0 < roi_y1):
-                str_postfix += " %d %d %d %d\n" % (roi_x0,
-                                                   roi_y0, (roi_x1 - roi_x0), (roi_y1 - roi_y0))
-            elif (roi_x0 > roi_x1 and roi_y0 > roi_y1):
-                str_postfix += " %d %d %d %d\n" % (roi_x1,
-                                                   roi_y1, (roi_x0 - roi_x1), (roi_y0 - roi_y1))
-            output.write(img + " " + str(num_of_rec) + str_postfix)
-        elif iKey == 116:
-            sys.stderr.write("Skipped %s.\n" % img)
+        while(True):
+            # Need to figure out waitkey returns.
+            # <ESC> = 43		exit program
+            # <Space> = 48		add rectangle to current image
+            # <x> = 136		skip image
+            iKey = cv.WaitKey(0) % 255
+            # This is ugly, but is actually a simplification of the C++.
+            if iKey == 27:
+                cv.DestroyWindow(window_name)
+                return 0
+            elif iKey == 32:
+                num_of_rec += 1
+                # Currently two draw directions possible:
+                # from top left to bottom right or vice versa
+                if roi_x0 < roi_x1 and roi_y0 < roi_y1:
+                    str_postfix += " %d %d %d %d" % (roi_x0, roi_y0, (roi_x1 - roi_x0), (roi_y1 - roi_y0))
+                elif roi_x0 > roi_x1 and roi_y0 > roi_y1:
+                    str_postfix += " %d %d %d %d" % (roi_x1, roi_y1, (roi_x0 - roi_x1), (roi_y0 - roi_y1))
+            elif iKey == 110:
+                num_of_rec += 1
+                # Currently two draw directions possible:
+                # from top left to bottom right or vice versa
+                if roi_x0 < roi_x1 and roi_y0 < roi_y1:
+                    str_postfix += " %d %d %d %d" % (roi_x0, roi_y0, (roi_x1 - roi_x0), (roi_y1 - roi_y0))
+                elif roi_x0 > roi_x1 and roi_y0 > roi_y1:
+                    str_postfix += " %d %d %d %d" % (roi_x1, roi_y1, (roi_x0 - roi_x1), (roi_y0 - roi_y1))
+                output.write(img + " " + str(num_of_rec) + str_postfix + "\n")
+                break
+            elif iKey == 116:
+                sys.stderr.write("Skipped %s.\n" % img)
+                break
 
 
 if __name__ == '__main__':
