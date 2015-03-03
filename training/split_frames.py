@@ -67,11 +67,12 @@ def main():
 
     procs = deque()
     lock = Lock()
+
     # Process
     for videofile in videos:
         if os.path.isfile(videofile):
             print("Splitting {0} into frames.".format(videofile))
-            proc = Process(target=generate_frames, args=(lock, videofile,), name=videofile)
+            proc = Process(target=generate_frames, args=(lock, videofile, ), name=videofile)
             procs.append(proc)
             proc.start()
     for proc_obj, join_func in ((proc, proc.join) for proc in procs):

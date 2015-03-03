@@ -1,14 +1,10 @@
 import numpy as np
 import cv2
 
+ENTRANCE_ROI = (230, 230)
+
 # cap = cv2.VideoCapture("../videos/724video.mkv")
 cap = cv2.VideoCapture("../videos/whitebg.h264")
-# params for ShiTomasi corner detection
-feature_params = dict( maxCorners = 100,
-                       qualityLevel = 0.3,
-                       minDistance = 7,
-                       blockSize = 7 )
-
 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15,15),
@@ -21,13 +17,9 @@ color = np.random.randint(0,255,(100,3))
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
 old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
-
-print type(p0), p0.dtype, p0.shape
-print(p0)
 
 # Create a mask image for drawing purposes
-mask = np.zeros_like(old_frame)
+draw_mask = np.zeros_like(old_frame)
 
 while(1):
     ret,frame = cap.read()
@@ -44,10 +36,11 @@ while(1):
     for i,(new,old) in enumerate(zip(good_new,good_old)):
         a,b = new.ravel()
         c,d = old.ravel()
-        cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
+        cv2.line(draw_mask, (a,b),(c,d), color[i].tolist(), 2)
         cv2.circle(frame,(a,b),5,color[i].tolist(),-1)
-    img = cv2.add(frame,mask)
-    cv2.imshow('frame',img)
+
+    img = cv2.add(frame, draw_mask)
+    cv2.imshow('frame', img)
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break

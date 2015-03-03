@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 help_message = '''
-USAGE: opt_flow.py [<video_source>]
+USAGE: opt_flow_dense.py [<video_source>]
 
 Keys:
  1 - toggle HSV flow visualization

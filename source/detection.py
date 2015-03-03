@@ -81,24 +81,28 @@ def drawMatches(img1, kp1, img2, kp2, matches):
     # Show the image
     cv2.imshow('Matched Features', out)
 
-def cascadeDetect(vidfilename):
+def cascadeDetect(vidfilename, min_neighbors=2):
     cascade = cv2.CascadeClassifier("../classifier/v2verticaldown/cascade.xml")
     print videofile
     video = load_local(vidfilename)
     ret, frame = video.read()
     while ret:
         # frameGray = cv2.cvtColor(frame, cv2.cv.CV_BGR2GRAY)
-        bees = cascade.detectMultiScale(frame, minNeighbors=2)
+        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors)
         for (x, y, w, h) in bees:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
             center = (x+(w/2), y+(h/2))
         cv2.rectangle(frame, ROI, (ROI[0]+400, ROI[1]+230), (0, 255, 0), 2)
         cv2.imshow("Video", frame)
         ret, frame = video.read()
-        key = cv2.waitKey(5)
-        if key == 32: cv2.waitKey()
-        elif key == 27: 
+        key = cv2.waitKey(1)
+        if key == keys.ESC:
             break
+        if key == keys.SPACE:
+            cv2.waitKey()
+        if key == keys.Q:
+            exit()
+
 
 def siftDetect(vidfilename):
     video = load_local(vidfilename)
