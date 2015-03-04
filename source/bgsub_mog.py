@@ -30,7 +30,7 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
     while ret:
         gt_filename = "{0}/{1}/{2}.jpg.seg.bmp".format(GT_IMG_DIR, vidfile_basename, frame_num)
 
-        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors)
+        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors, maxSize=(50, 50))
         mask_binary = np.zeros((frame_h, frame_w))
         for x, y, w, h in bees:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
@@ -180,5 +180,5 @@ if __name__ == '__main__':
     for videofile in videos:
         if os.path.isfile(videofile):
             print("Opening: {0} ({1})".format(os.path.basename(videofile), videofile))
-            cascade_detect(os.path.basename(videofile))
-            # bgsub(os.path.basename(videofile), 16)
+            # cascade_detect(os.path.basename(videofile))
+            bgsub(os.path.basename(videofile), 16)

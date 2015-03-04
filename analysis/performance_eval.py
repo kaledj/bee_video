@@ -47,7 +47,7 @@ def main():
     results_q = Queue()
     lock = Lock()
     procs = deque()
-    for thresh in xrange(30):
+    for thresh in xrange(1):
         proc = Process(target=eval_PR, args=(videofile, int(1.4**thresh), results_q, lock, 'bgsub'), name=str(thresh))
         procs.append(proc)
         proc.start()
