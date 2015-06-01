@@ -1,9 +1,14 @@
+import sys
+# PREPEND the source to the path so that this package can access it
+sys.path.insert(0, 'C:/Users/kaledj/Projects/bee_video_dev')
+
 import time
 import os
-import matplotlib.pyplot as plt
-from source.bgsub_mog import bgsub, cascade_detect
-from multiprocessing import Process, Lock, Queue
 from collections import deque
+import matplotlib.pyplot as plt
+from multiprocessing import Process, Lock, Queue
+
+from source.bgsub_mog import bgsub, cascade_detect
 
 
 def eval_ROC(test_videoname):
