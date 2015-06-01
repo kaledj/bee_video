@@ -1,29 +1,22 @@
-
 #!/usr/bin/env python
 
 '''
 Lucas-Kanade tracker
 ====================
-
-Lucas-Kanade sparse optical flow demo. Uses goodFeaturesToTrack
-for track initialization and back-tracking for match verification
-between frames.
-
-Usage
------
-lk_track.py [<video_source>]
-
-
 Keys
 ----
 ESC - exit
 '''
 
+# System
 import numpy as np
 import cv2
-from bgsub_mog import model_bg2, morph_openclose
-import keys
 from time import clock
+
+# Project
+from tools import model_bg2, morph_openclose, cross
+import drawing
+import keys
 
 lk_params = dict( winSize  = (30, 30),
                   maxLevel = 2,
@@ -33,18 +26,17 @@ lk_params = dict( winSize  = (30, 30),
 ROI = (30, 290)
 ROI_W = 500
 ROI_H = 180
-GREEN = (0, 255, 0)
-RED = (0, 0, 255)
-BLUE = (255, 0, 0)
-
 
 class App:
-    def __init__(self, video_src):
-        self.quiet = True
-        self.invisible = False
+    def __init__(self, video_src, quiet=False, invisible=False, draw_contours=True):
+        self.quiet = quiet
+        self.invisible = invisible
+        self.drawTracks = True
+        self.drawContours = draw_contours
+        self.drawFrameNum = False
 
         # Learn the bg
-        self.operator = cv2.BackgroundSubtractorMOG2(2000, 32, True)
+        self.operator = cv2.BackgroundSubtractorMOG2(2000, 16, True)
         model_bg2(video_src, self.operator)
 
         self.track_len = 10
@@ -54,9 +46,9 @@ class App:
         self.frame_idx = 0
         self.arrivals = self.departures = 0
 
-    def run(self):
-        cv2.namedWindow("Tracking")
-        cv2.waitKey()
+    def run(self, as_script=True):
+        # cv2.namedWindow("Tracking")
+        # cv2.waitKey()
         prev_gray = None
         prev_points = None
         while True:
@@ -70,22 +62,23 @@ class App:
 
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            if prev_gray is not None and prev_points is not None and len(prev_points) > 0:
+            if prev_gray is not None:
                 p0 = np.float32([point for point in prev_points]).reshape(-1, 1, 2)
-                if p0 is not None:
-                    for (x, y) in p0.reshape(-1, 2):
-                        cv2.circle(frame, (x, y), radius=2, color=RED, thickness=-1)
-                # p0 = np.float32(prev_points)
-                p1, st, err = cv2.calcOpticalFlowPyrLK(prev_gray, frame_gray, p0, None, **lk_params)
-                for p_i, p_f in zip(p0.reshape(-1, 2), p1.reshape(-1, 2)):
-                    result = self.cross(p_i, p_f)
-                    if not self.quiet:
-                        if result > 0:
-                            print("Arrival")
-                        elif result < 0:
-                            print("Departure")
-                    if not self.invisible:
-                        cv2.line(frame, tuple(p_i), tuple(p_f), RED)
+                if drawing.draw_prev_points(frame, prev_points):
+                    p1, st, err = cv2.calcOpticalFlowPyrLK(prev_gray, frame_gray, p0, None, **lk_params)
+                    for p_i, p_f in zip(p0.reshape(-1, 2), p1.reshape(-1, 2)):
+                        result = cross(ROI, ROI_W, ROI_H, p_i, p_f)
+                        if result is 1:
+                            self.arrivals += 1
+                            if not self.quiet:
+                                print("Arrival")
+                        elif result is -1:
+                            self.departures += 1
+                            if not self.quiet:
+                                print("Departure")
+
+                        if self.drawTracks:
+                            drawing.draw_line(frame, tuple(p_i), tuple(p_f))
 
             if len(self.tracks) > 0:
                 # Find flow between last points and current points
@@ -93,7 +86,7 @@ class App:
                 p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
                 p1, st, err = cv2.calcOpticalFlowPyrLK(img0, img1, p0, None, **lk_params)
                 for p_i, p_f in zip(p0.reshape(-1, 2), p1.reshape(-1, 2)):
-                    result = self.cross(p_i, p_f)
+                    result = cross(ROI, ROI_W, ROI_H, p_i, p_f)
                     if result > 0:
                         print("Arrival")
                     elif result < 0:
@@ -115,84 +108,40 @@ class App:
                 self.tracks = new_tracks
                 cv2.polylines(frame, [np.int32(tr) for tr in self.tracks], False, (0, 255, 0))
 
-            # Detect new points
-            # if self.frame_idx % self.detect_interval == 0:
-            #     mask = np.zeros_like(frame_gray)
-            #     mask[:] = 255
-            #     p = blob_centers(fg_mask)
-
-            # prev_points = cv2.goodFeaturesToTrack(frame_gray, 10, .001, 40, mask=fg_mask)
-            # if prev_points is not None:
-            #     for (x, y) in prev_points.reshape(-1, 2):
-            #         cv2.circle(frame, (x, y), radius=3, color=RED, thickness=-1)
+            prev_gray = frame_gray
+            prev_points = drawing.draw_blob_centers(fg_mask, frame, drawcenters=True)
 
             self.frame_idx += 1
-            prev_gray = frame_gray
-            prev_points = blob_centers(fg_mask)
-
             if not self.invisible:
-                cv2.rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H), GREEN, 2)
-                draw_frame_num(frame, self.frame_idx)
+                drawing.draw_rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H))
+                if self.drawFrameNum:
+                    drawing.draw_frame_num(frame, self.frame_idx)
+                if self.drawContours:
+                    drawing.draw_contours(frame, fg_mask)
                 cv2.imshow('Tracking', frame)
-            key = cv2.waitKey(100)
-            if key == keys.SPACE:
-                key = cv2.waitKey()
-            if key == keys.ESC:
-                break
-            if key == keys.Q:
-                exit()
-        print "Arrivals: {0} Departures: {1}".format(self.arrivals, self.departures)
+                cv2.imshow("Mask", fg_mask)
+                key = cv2.waitKey(100)
+            else:
+                key = cv2.waitKey(1)
 
-    def cross(self, pt0, pt1):
-        """
-        Determines if the points enter or leave the rectangle.
-        Returns 1 if the points enter the rect, -1 if it leaves, or 0 if neither.
-        """
-        x0 = pt0[0]
-        y0 = pt0[1]
-        x1 = pt1[0]
-        y1 = pt1[1]
-
-        p0in = ROI[0] < x0 < ROI[0] + ROI_W and ROI[1] < y0 < ROI[1] + ROI_H
-        p1in = ROI[0] < x1 < ROI[0] + ROI_W and ROI[1] < y1 < ROI[1] + ROI_H
-
-        if not p0in and p1in:
-            self.arrivals += 1
-            return 1
-        elif p0in and not p1in:
-            self.departures += 1
-            return -1
-        else:
-            return 0
-
-
-def draw_frame_num(frame, num):
-    params = dict(fontFace=cv2.cv.CV_FONT_HERSHEY_COMPLEX,
-                  fontScale=1, thickness=1)
-    ret, baseline = cv2.getTextSize(str(num), **params)
-    print ret
-    cv2.putText(frame, str(num), org=(0, ret[1]), color=RED, **params)
-
-
-def blob_centers(fg_mask, frame=None, drawcenters=False):
-    contours, hierarchy = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
-    centers = []
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        # cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-        center = (x + (w/2), y + (h/2))
-        if drawcenters and frame is not None:
-            cv2.circle(frame, center, radius=2, color=RED, thickness=-1)
-        centers.append(center)
-    return centers
+            if key == keys.SPACE: key = cv2.waitKey()
+            if key == keys.ESC: break
+            if key == keys.Q: exit()
+            
+            # Should we continue running or yield some information about the current frame
+            if as_script: continue
+            else: pass
 
 
 def main():
     clock()
-    video_src = "../videos/whitebg.h264"
+    # video_src = "../videos/whitebg.h264"
+    video_src = "../videos/newhive_noshadow3pm.h264"
     # video_src = "../videos/video1.mkv"
-    App(video_src).run()
+    app = App(video_src)
+    app.run()
     cv2.destroyAllWindows()
+    print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
     print("{0} seconds elapsed.".format(clock()))
 
 

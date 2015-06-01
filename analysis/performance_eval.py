@@ -47,7 +47,7 @@ def main():
     results_q = Queue()
     lock = Lock()
     procs = deque()
-    for thresh in xrange(1):
+    for thresh in xrange(30):
         proc = Process(target=eval_PR, args=(videofile, int(1.4**thresh), results_q, lock, 'bgsub'), name=str(thresh))
         procs.append(proc)
         proc.start()
@@ -97,7 +97,8 @@ def main():
     plt.plot([0, 1], [1, 0], 'k--')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.legend(loc='lower right')
+
+    plt.legend()
     plt.show()
 
 if __name__ == '__main__':

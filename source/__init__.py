@@ -1,2 +1,1 @@
-import keys
-import bgsub_mog
+print("Imported source package or a submodule")

@@ -1,7 +1,13 @@
+import sys
+# PREPEND the source to the path so that this package can access it
+sys.path.insert(0, 'C:/Users/kaledj/Projects/bee_video_dev')
 
+# System imports
 import cv2
 import numpy as np
 
+# Project imports
+import source.lk_track
 
 def compare_response_to_truth(detector_response, actual, cascade=False, thresh=10):
     if type(actual) is str:
@@ -15,10 +21,6 @@ def compare_response_to_truth(detector_response, actual, cascade=False, thresh=1
 
     tp = true_positive(detector_response, actual_img, cascade, thresh)
     fp = false_postive(detector_response, actual_img, cascade, thresh)
-    if cascade:
-        fp -= tp * 4
-        if fp < 0:
-            fp = 0
     fn = false_negative(detector_response, actual_img, cascade, thresh)
     return tp, fp, fn
 
@@ -31,7 +33,7 @@ def true_positive(detector_response, actual_img, cascade=False, thresh=10):
 def false_postive(detector_response, actual_img, cascade=False, thresh=10):
     pos_response_idx = (detector_response == 1)
     if cascade:
-        return np.sum(actual_img[pos_response_idx] == 0)
+        return np.sum(actual_img[pos_response_idx] == 0) / 4
     else:
         return np.sum(actual_img[pos_response_idx] == 0)
 

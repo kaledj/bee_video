@@ -1,3 +1,5 @@
+__author__ = "David Kale"
+
 '''
 Background subtraction using MOG
 
@@ -8,15 +10,14 @@ import numpy as np
 import os
 import sys
 import cv2
-import keys
 
-# User modules
-from analysis import compare_response_to_truth, class_counter
+# Project
+import keys
 
 BGR2GRAY = cv2.cv.CV_BGR2GRAY
 GT_IMG_DIR = 'C:/Users/kaledj/Projects/SegmentationforCortina/images/'
 VIDEO_DIR = '../videos/'
-
+DRAW_BOXES = True
 
 def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
     cascade = cv2.CascadeClassifier("../classifier/v2verticaldown/cascade.xml")
@@ -30,7 +31,7 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
     while ret:
         gt_filename = "{0}/{1}/{2}.jpg.seg.bmp".format(GT_IMG_DIR, vidfile_basename, frame_num)
 
-        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors, maxSize=(50, 50))
+        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors)
         mask_binary = np.zeros((frame_h, frame_w))
         for x, y, w, h in bees:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
@@ -67,7 +68,7 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
     return precision, recall
 
 
-def bgsub(vidfile_basename, threshold, quiet=False):
+def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
     operator = cv2.BackgroundSubtractorMOG2(2000, threshold, True)
     # Learn the bg
     model_bg2(VIDEO_DIR + vidfile_basename, operator)
@@ -99,15 +100,20 @@ def bgsub(vidfile_basename, threshold, quiet=False):
         if not quiet:
             mask = ((mask == 255) * 255).astype(np.uint8)
             cv2.imshow("Mask", mask)
-            blob_detect(mask, frame)
+            if drawBoxes:
+                blob_detect(mask, frame)
+            else:
+                cv2.imshow("Frame", frame)
 
         ret, frame = video.read()
         frame_num += 1
         key = cv2.waitKey(1)
+        if key == keys.T:
+            drawBoxes = not drawBoxes
         if key == keys.ESC:
             break
         if key == keys.SPACE:
-            cv2.waitKey()
+            key = cv2.waitKey()
         if key == keys.Q:
             exit()
 
