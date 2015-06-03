@@ -10,6 +10,8 @@ from multiprocessing import Process, Lock, Queue
 
 from source.bgsub_mog import bgsub, cascade_detect
 
+NUM_ITERS = 30
+QUIET = True
 
 def eval_ROC(test_videoname):
     detection_rates = {'tp': [], 'fp': []}
@@ -30,9 +32,11 @@ def eval_ROC(test_videoname):
 
 def eval_PR(test_videoname, threshold, results_queue, threadlock, algorithm):
     if algorithm == 'bgsub':
-        precision_rate, recall_rate = bgsub(os.path.basename(test_videoname), threshold, quiet=True)
+        precision_rate, recall_rate = bgsub(os.path.basename(test_videoname), 
+            threshold, quiet=QUIET)
     elif algorithm == 'cascade':
-        precision_rate, recall_rate = cascade_detect(os.path.basename(test_videoname), threshold, quiet=True)
+        precision_rate, recall_rate = cascade_detect(os.path.basename(test_videoname), 
+            threshold, quiet=QUIET)
     else:
         raise Exception('Invalid algorithm for detection: {0}'.format(algorithm))
     try:
@@ -43,68 +47,62 @@ def eval_PR(test_videoname, threshold, results_queue, threadlock, algorithm):
         threadlock.release()
 
 
+def run_multithreaded(videofile, algorithm, threshold_step):
+    results_q = Queue()
+    lock = Lock()
+    procs = deque()
+    for thresh in xrange(NUM_ITERS):
+        if algorithm is 'bgsub':
+            threshold = threshold_step ** thresh
+        else:
+            threshold = thresh
+        proc = Process(target=eval_PR, args=(videofile, threshold, results_q, 
+            lock, algorithm), name=str(thresh))
+        procs.append(proc)
+        proc.start()
+    for proc_obj, join_func in ((proc, proc.join) for proc in procs):
+        join_func()
+        print("Process '{0}' using algorithm '{1}' joined.".format(proc_obj.name, algorithm))
+    print("{0} seconds elapsed".format(time.clock()))
+    # Organize results
+    results = []
+    recall_rates = []
+    precision_rates = []
+    while not results_q.empty():
+        results.append(results_q.get())
+    results.sort(key=lambda x: x[1])
+    for prec, recall in ((item[0], item[1]) for item in results):
+        precision_rates.append(prec)
+        recall_rates.append(recall)
+    return precision_rates, recall_rates
+
+
 def main():
     videofile = 'whitebg.h264'
-    # eval_ROC('video1.mkv')
-    # eval_PR('whitebg.h264')
+    # videofile = 'newhive_noshadow3pm.h264'
+
+    # Set up and create the figure
     time.clock()
-
-    results_q = Queue()
-    lock = Lock()
-    procs = deque()
-    for thresh in xrange(30):
-        proc = Process(target=eval_PR, args=(videofile, int(1.4**thresh), results_q, lock, 'bgsub'), name=str(thresh))
-        procs.append(proc)
-        proc.start()
-    for proc_obj, join_func in ((proc, proc.join) for proc in procs):
-        join_func()
-        print("Process '{0}' joined.".format(proc_obj.name))
-    print("{0} seconds elapsed".format(time.clock()))
-
-    results = []
-    recall_rates = []
-    precision_rates = []
-    while not results_q.empty():
-        results.append(results_q.get())
-    results.sort(key=lambda x: x[1])
-    for prec, recall in ((item[0], item[1]) for item in results):
-        precision_rates.append(prec)
-        recall_rates.append(recall)
     plt.figure()
     plt.title('Precision-Recall Curve for Bee Detection')
+
+    # Run with bgsub algorithm 
+    recall_rates, precision_rates = run_multithreaded(videofile, 'bgsub', 
+        threshold_step=1.4)    
     plt.plot(recall_rates, precision_rates, label='Background sub. algorithm')
 
-    #######################################
-    results_q = Queue()
-    lock = Lock()
-    procs = deque()
-    for thresh in xrange(30):
-        proc = Process(target=eval_PR, args=(videofile, int(thresh), results_q, lock, 'cascade'), name=str(thresh))
-        procs.append(proc)
-        proc.start()
-    for proc_obj, join_func in ((proc, proc.join) for proc in procs):
-        join_func()
-        print("Process '{0}' joined.".format(proc_obj.name))
-    print("{0} seconds elapsed".format(time.clock()))
-
-    results = []
-    recall_rates = []
-    precision_rates = []
-    while not results_q.empty():
-        results.append(results_q.get())
-    results.sort(key=lambda x: x[1])
-    for prec, recall in ((item[0], item[1]) for item in results):
-        precision_rates.append(prec)
-        recall_rates.append(recall)
+    # Run with cascade detection algorithm
+    recall_rates, precision_rates = run_multithreaded(videofile, 'cascade', 
+        threshold_step=1)  
     plt.plot(recall_rates, precision_rates, label='Cascade algorithm')
-    ########################################################################
 
+    # Add labels and a diagonal dashed line
     plt.plot([0, 1], [1, 0], 'k--')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-
     plt.legend()
     plt.show()
+
 
 if __name__ == '__main__':
     main()

@@ -4,6 +4,9 @@ __author__ = "David Kale"
 Background subtraction using MOG
 
 '''
+import sys
+# PREPEND the source to the path so that this package can access it
+sys.path.insert(0, 'C:/Users/kaledj/Projects/bee_video_dev')
 
 import time
 import numpy as np
@@ -13,6 +16,11 @@ import cv2
 
 # Project
 import keys
+import tools
+from analysis.compare2truth import area_precision_recall
+from analysis.compare2truth import compare_response_to_truth
+from analysis import class_counter
+
 
 BGR2GRAY = cv2.cv.CV_BGR2GRAY
 GT_IMG_DIR = 'C:/Users/kaledj/Projects/SegmentationforCortina/images/'
@@ -38,40 +46,28 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
             mask_binary[y:y+h, x:x+w] = 1
         if not quiet:
             cv2.imshow("Detections", mask_binary * 255)
-            cv2.imshow("Frame", frame)
+            cv2.imshow("Frame- {0}".format(min_neighbors), frame)
 
         if os.path.exists(gt_filename):
-            tp, fp, fn = compare_response_to_truth(mask_binary, gt_filename, cascade=True)
-            tp_t += tp
-            fp_t += fp
-            fn_t += fn
+            # tp, fp, fn = compare_response_to_truth(mask_binary, gt_filename, cascade=True)
+            # tp_t += tp
+            # fp_t += fp
+            # fn_t += fn
+            precision, recall = area_precision_recall(mask_binary, gt_filename)
             if not quiet:
                 cv2.imshow("Ground truth", cv2.imread(gt_filename) * 255)
 
         ret, frame = video.read()
         frame_num += 1
-        key = cv2.waitKey(1)
-        if key == keys.ESC:
-            break
-        if key == keys.SPACE:
-            cv2.waitKey()
-        if key == keys.Q:
-            exit()
+        if handle_keys() is 1: break
 
-    with np.errstate(invalid='ignore'):
-        precision = np.float64(tp_t) / (tp_t + fp_t)
-        recall = np.float64(tp_t) / (tp_t + fn_t)
-    if np.isinf(precision) or np.isnan(precision):
-        precision = 1
-    if np.isinf(recall) or np.isnan(recall):
-        recall = 1
     return precision, recall
 
 
 def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
     operator = cv2.BackgroundSubtractorMOG2(2000, threshold, True)
     # Learn the bg
-    model_bg2(VIDEO_DIR + vidfile_basename, operator)
+    tools.model_bg2(VIDEO_DIR + vidfile_basename, operator)
 
     tp_t = fp_t = fn_t = p_t = n_t = 0
 
@@ -80,7 +76,7 @@ def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
     frame_num = 0
     while ret:
         mask = operator.apply(frame, learningRate=-1)
-        mask = morph_openclose(mask)
+        mask = tools.morph_openclose(mask)
         mask_binary = (mask == 255).astype(np.uint8)
 
         gt_filename = "{0}/{1}/{2}.jpg.seg.bmp".format(GT_IMG_DIR, vidfile_basename, frame_num)
@@ -104,18 +100,10 @@ def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
                 blob_detect(mask, frame)
             else:
                 cv2.imshow("Frame", frame)
-
+                
         ret, frame = video.read()
         frame_num += 1
-        key = cv2.waitKey(1)
-        if key == keys.T:
-            drawBoxes = not drawBoxes
-        if key == keys.ESC:
-            break
-        if key == keys.SPACE:
-            key = cv2.waitKey()
-        if key == keys.Q:
-            exit()
+        if handle_keys() is 1: break
 
     with np.errstate(invalid='ignore'):
         precision = np.float64(tp_t) / (tp_t + fp_t)
@@ -127,43 +115,14 @@ def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
     return precision, recall
 
 
-def model_bg(video):
-    vidcapture = cv2.VideoCapture(video)
-    ret, frame = vidcapture.read()
-    frame = cv2.cvtColor(frame, BGR2GRAY)
-    vres, hres = frame.shape
-
-    # Average first N frames
-    N = 100
-    frameBuffer = np.zeros((N, vres, hres), np.uint32)
-    for i in range(N):
-        ret, frame = vidcapture.read()
-        if ret:
-            frame = cv2.cvtColor(frame, BGR2GRAY)
-            frameBuffer[i] = frame
-        else:
-            break
-    vidcapture.release()
-    return (np.sum(frameBuffer, axis=0) / N).astype(np.uint8)
-
-
-def model_bg2(video, operator):
-    vidcapture = cv2.VideoCapture(video)
-    # Initialize from first N frames
-    N = 50
-    for _ in range(N):
-        ret, frame = vidcapture.read()
-        if ret:
-            operator.apply(frame, learningRate=-1)
-        else:
-            break
-    vidcapture.release()
-
-
-def morph_openclose(image):
-    kernel = np.ones((3, 3), np.uint8)
-    new_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel, iterations=1)
-    return cv2.morphologyEx(new_image, cv2.MORPH_OPEN, kernel, iterations=1)
+def handle_keys():
+    key = cv2.waitKey(1)
+    if key == keys.SPACE:
+        key = cv2.waitKey()
+    if key == keys.Q:
+        exit()
+    if key == keys.ESC:
+        return 1
 
 
 def blob_detect(mask, frame):

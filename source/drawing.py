@@ -27,10 +27,27 @@ def draw_contours(frame, fg_mask):
     assert frame is not None
     contours, hierarchy = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
     cv2.drawContours(frame, contours, -1, (0, 255, 0), hierarchy=hierarchy, maxLevel=2)
+    return contours, hierarchy
 
 
-def draw_blob_centers(fg_mask, frame=None, drawcenters=False):
-    contours, hierarchy = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
+def draw_min_ellipse(contours, frame):
+    areas = []
+    for contour in contours:
+        if len(contour) < 5:
+            continue
+        ellipse = cv2.fitEllipse(contour)
+        # print(cv2.minAreaRect(contour))
+        width, height = ellipse[1]
+        area = (width / 2) * (height / 2) * np.pi
+        # print("Area: " + str(area))
+        # print("Size: ", ellipse[1])
+        # print("Center: ", ellipse[0])
+        cv2.ellipse(frame, ellipse, color=BLUE)
+        areas.append(area)
+    return areas
+
+
+def draw_blob_centers(contours, hierarchy, frame=None, drawcenters=False):
     centers = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
@@ -38,6 +55,10 @@ def draw_blob_centers(fg_mask, frame=None, drawcenters=False):
         center = (x + (w/2), y + (h/2))
         if drawcenters and frame is not None:
             cv2.circle(frame, center, radius=4, color=RED, thickness=-1)
+            if len(contour) >= 5:
+                center2 = cv2.fitEllipse(contour)[0]
+                center2 = tuple([int(x) for x in center2])
+                cv2.circle(frame, center2, radius=4, color=BLUE, thickness=-1)
         centers.append(center)
     return centers
 

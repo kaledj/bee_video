@@ -5,6 +5,10 @@ Split Frames
 Takes every 10th frame from a video sequence to be used in cropping out samples. 
 '''
 
+import sys
+# PREPEND the source to the path so that this package can access it
+sys.path.insert(0, 'C:/Users/kaledj/Projects/bee_video_dev')
+
 from source import keys
 import cv2
 import os
