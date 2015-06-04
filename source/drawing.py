@@ -22,7 +22,6 @@ def draw_prev_points(frame, points, color=BLUE, radius=2):
     else:
         return False
 
-
 def draw_contours(frame, fg_mask):
     assert frame is not None
     contours, hierarchy = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
@@ -30,8 +29,9 @@ def draw_contours(frame, fg_mask):
     return contours, hierarchy
 
 
-def draw_min_ellipse(contours, frame):
+def draw_min_ellipse(contours, frame, minArea, maxArea):
     areas = []
+    centers = []
     for contour in contours:
         if len(contour) < 5:
             continue
@@ -42,9 +42,13 @@ def draw_min_ellipse(contours, frame):
         # print("Area: " + str(area))
         # print("Size: ", ellipse[1])
         # print("Center: ", ellipse[0])
-        cv2.ellipse(frame, ellipse, color=BLUE)
         areas.append(area)
-    return areas
+        if minArea < area < maxArea:
+            cv2.ellipse(frame, ellipse, color=BLUE)
+            center = tuple([int(x) for x in ellipse[0]])
+            # cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
+            centers.append(center)
+    return areas, centers
 
 
 def draw_blob_centers(contours, hierarchy, frame=None, drawcenters=False):
