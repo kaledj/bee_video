@@ -6,7 +6,7 @@ import keys
 def model_bg2(video, operator):
     vidcapture = cv2.VideoCapture(video)
     # Initialize from first N frames
-    N = 500
+    N = 100
     for _ in range(N):
         ret, frame = vidcapture.read()
         if ret:

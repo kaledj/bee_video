@@ -11,7 +11,6 @@ def draw_frame_num(frame, num):
     ret, baseline = cv2.getTextSize(str(num), **params)
     cv2.putText(frame, str(num), org=(0, ret[1]), color=RED, **params)
 
-
 def draw_prev_points(frame, points, color=BLUE, radius=2):
     if points is not None and len(points) > 0:
         p0 = np.float32([point for point in points]).reshape(-1, 1, 2)
@@ -46,7 +45,7 @@ def draw_min_ellipse(contours, frame, minArea, maxArea):
         if minArea < area < maxArea:
             cv2.ellipse(frame, ellipse, color=BLUE)
             center = tuple([int(x) for x in ellipse[0]])
-            # cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
+            cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
             centers.append(center)
     return areas, centers
 
