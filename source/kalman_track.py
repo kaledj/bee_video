@@ -15,11 +15,13 @@ from matplotlib import pyplot
 from collections import namedtuple
 from pykalman import KalmanFilter
 
-# Project 
+# Project
+import tools 
 from tools import model_bg2, morph_openclose, cross, handle_keys
 import drawing
 from drawing import GREEN, RED, BLUE
 import keys
+from background_subtractor import BackgroundSubtractor
 
 ROI = (50, 200)
 ROI_W = 500
@@ -28,30 +30,44 @@ ROI_H = 200
 MIN_AREA = 200
 MAX_AREA = 1500
 
-observation_matrix = np.array([[1, 0, 0, 0], 
-                               [0, 1, 0, 0]], np.float32)
 
-transition_matrix = np.array([[1, 0, 1, 0], 
-                              [0, 1, 0, 1],
-                              [0, 0, 1, 0],
-                              [0, 0, 0, 1]], np.float32)
+kf_params = dict(transition_matrices = np.array([[1, 0, 1, 0], 
+                                                 [0, 1, 0, 1],
+                                                 [0, 0, 1, 0],
+                                                 [0, 0, 0, 1]], np.float32),
+
+                 observation_matrices = np.array([[1, 0], 
+                                                  [0, 1]], np.float32),
+         
+                 transition_covariance = 10 * np.array([[1, 0, 1, 0], 
+                                                        [0, 1, 0, 1],
+                                                        [0, 0, 1, 0],
+                                                        [0, 0, 0, 1]], np.float32),
+         
+                 observation_covariance = 10 * np.array([[1, 0], 
+                                                         [0, 1]], np.float32),
+         
+                 transition_offsets = np.array([0, 0, 0, 0], np.float32),
+         
+                 observation_offsets = np.array([0, 0], np.float32)
+            )
 
 
 class App:
     def __init__(self, video_src, quiet=False, invisible=False, draw_contours=True, 
-                 bgsub_thresh=64):
+                 bgsub_thresh=64, drawTracks=True, drawFrameNum=False):
         self.quiet = quiet
         self.invisible = invisible
-        self.drawTracks = True
         self.drawContours = draw_contours
-        self.drawFrameNum = False
+        self.threshold = bgsub_thresh
+        self.drawTracks = drawTracks
+        self.drawFrameNum = drawFrameNum
 
         self.areas = []
 
         # Learn the bg
-        self.threshold = bgsub_thresh
-        self.operator = cv2.BackgroundSubtractorMOG2(2000, self.threshold, True)
-        model_bg2(video_src, self.operator)
+        self.operator = BackgroundSubtractor(2000, self.threshold, True)
+        self.operator.model_bg2(video_src)
 
         self.cam = cv2.VideoCapture(video_src)
         
@@ -130,9 +146,22 @@ class App:
     def createNewTracks(self, unmatchedDetections):
         for detection in unmatchedDetections:
             # TODO: Create Kalman filter object
+            initial_state_mean = np.array(detection + (1, 1))
+            initial_state_covariance = 10 * np.eye(4)
+            print(kf_params['transition_matrices'].shape)
+            print(kf_params['observation_matrices'].shape)
+            print(kf_params['transition_covariance'].shape)
+            print(kf_params['observation_covariance'].shape)
+            print(kf_params['transition_offsets'].shape)
+            print(kf_params['observation_offsets'].shape)
+            print(initial_state_mean.shape)
+            cv2.waitKey(10)
+            kf = KalmanFilter(initial_state_mean=initial_state_mean, 
+                              initial_state_covariance=initial_state_covariance,
+                              **kf_params) 
 
             # Create the new track
-            newTrack = Track(nextTrackID, None)
+            newTrack = Track(nextTrackID, kf)
             newTrack.locationHistory.append(detection)
             self.tracks.append(newTrack)
             self.nextTrackID += 1
@@ -141,16 +170,23 @@ class App:
         for assignment in assignments:
             trackIndex = assignment.trackIndex
             detectionIndex = assignment.detectionIndex
-            detection = detections[detectionIndex]
+            detection = np.array(detections[detectionIndex])
+            track = self.tracks[trackIndex]
 
             # TODO: Correct the estimate using current detection location
+            if track.age == 0:
+                filtered_state_mean = track.kalmanFilter.initial_state_mean
+                filtered_state_covariance = track.kalmanFilter.initial_state_covariance
+            else:
+                filtered_state_mean = track.kalmanFilter.predicted_state_mean
+                filtered_state_covariance = track.kalmanFilter.predicted_state_covariance
+            track.update(filtered_state_mean, filtered_state_covariance, detection)
 
             # Update track
-            tr = self.tracks[trackIndex]
-            tr.age += 1
-            tr.totalVisibleCount += 1
-            tr.timeInvisible = 0
-            tr.locationHistory.append(detection)
+            track.age += 1
+            track.totalVisibleCount += 1
+            track.timeInvisible = 0
+            track.locationHistory.append(detection)
 
     def updateUnmatchedTracks(self, unmatchedTracks):
         for trackIndex in unmatchedTracks:
@@ -159,17 +195,20 @@ class App:
             tr.timeInvisible += 1
 
     def assignTracks(self, detections):
-        Assignment = namedtuple('Assignment', 'trackIndex detectionIndex')
-        assignments = []
-        unmatchedTracks = []
-        unmatchedDetections = []
-
-        costMatrix = np.zeros((len(self.tracks), len(detections)))
-        for i, (x1, y1) in enumerate(self.tracks):
-            for j, (x2, y2) in enumerate(detections):
-                costMatrix[i, j] = np.sqrt( (x1 - x2)**2 + (y1 - y2)**2 )
-        # TODO: Implement Hungarian Assignment algorithm
-        return assignments, unmatchedTracks, unmatchedDetections
+        """ Returns assignments, unmatchedTracks, unmatchedDetections """
+        if len(self.tracks) == 0:
+            # There are no tracks, all detections are unmatched
+            return [], [], detections
+        elif len(detections) == 0:
+            # There are no detections, all tracks are unmatched
+            return [], self.tracks, []
+        else:
+            costMatrix = np.zeros((len(self.tracks), len(detections)))
+            for i, track in enumerate(self.tracks):
+                x1, y1 = track.kalmanFilter.getPredictedXY()
+                for j, (x2, y2) in enumerate(detections):
+                    costMatrix[i, j] = np.sqrt( (x1 - x2)**2 + (y1 - y2)**2 )
+            return tools.assignment(costMatrix)
 
     def predictNewLocations(self):
         for track in self.tracks:
@@ -198,8 +237,17 @@ class Track(object):
         self.timeInvisible = 0
         self.locationHistory = []
 
+    def getPredictedXY(self):
+        x = self.predicted_state_mean[0]
+        y = self.predicted_state_mean[1]
+        return x, y
+
     def predict():
         pass
+
+    def update(self, fsm, fsc, detection):
+        self.predicted_state_mean, self.predicted_state_covariance = (
+            self.kalmanFilter.filter_update(fsm, fsc, detection) )
 
     def drawTrack(self, frame):
         cv2.polyLines(frame, [np.int32(loc) for loc in locationHistory], False, GREEN)
@@ -211,7 +259,7 @@ def main():
     # video_src = "../videos/whitebg.h264"
     videos.append("../videos/newhive_noshadow3pm.h264")
     # video_src = "../videos/video1.mkv"
-    videos.append("../videos/newhive_shadow2pm.h264")
+    # videos.append("../videos/newhive_shadow2pm.h264")
 
     for video_src in videos:
         app = App(video_src, invisible=False, bgsub_thresh=64)
@@ -238,3 +286,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+        

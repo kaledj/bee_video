@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import keys
-
+from sklearn.utils.linear_assignment_ import linear_assignment
+from collections import namedtuple
 
 def model_bg2(video, operator):
     vidcapture = cv2.VideoCapture(video)
@@ -51,3 +52,46 @@ def cross(rect, width, height, pt0, pt1):
             return -1
         else:
             return 0
+
+def assignment(costMatrix, costOfNonAssignment=20):
+    Assignment = namedtuple('Assignment', 'trackIndex detectionIndex')
+    assignments = []
+    unmatchedTracks = []
+    unmatchedDetections = []
+
+    # If matrix is rectangular, then pad
+    rows, cols = costMatrix.shape
+    diff = rows - cols
+    if diff != 0:
+        padValue = costOfNonAssignment + 1
+        if diff < 0:
+            pad_width = [(0, np.abs(diff)), (0, 0)]
+        if diff > 0:
+            pad_width = [(0, 0), (0, diff)]
+        costMatrix = np.pad(costMatrix, pad_width, mode='constant', 
+            constant_values=(padValue, padValue))
+    # Compute the optimal assignment
+    assign = linear_assignment(costMatrix)
+
+    # Throw out any assignments that cost more than the costOfNonAssingment
+    for row in assign:
+        trackIndex = row[0]
+        detectionIndex =  row[1]
+        if costMatrix[trackIndex, detectionIndex] > costOfNonAssignment:
+            if trackIndex <= rows:
+                unmatchedTracks.append(trackIndex)
+            if detectionIndex <= cols:
+                unmatchedDetections.append(detectionIndex)
+        else:
+            assignments.append(Assignment(trackIndex, detectionIndex))
+
+    return assignments, unmatchedTracks, unmatchedDetections
+
+if __name__ == '__main__':
+    a = np.array([[1, 2, 3],
+                  [4, 5, 6]])
+    b = np.array([[1, 2],
+                  [3, 4],
+                  [5, 6]])
+    assignTracks(a)
+    assignTracks(b)

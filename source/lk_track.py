@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 Lucas-Kanade tracker
 ====================
@@ -18,6 +16,8 @@ from matplotlib import pyplot
 from tools import model_bg2, morph_openclose, cross, handle_keys
 import drawing
 import keys
+from background_subtractor import BackgroundSubtractor
+
 
 lk_params = dict( #winSize  = (30, 30),
                   maxLevel = 2,
@@ -36,16 +36,16 @@ class App:
                  bgsub_thresh=64):
         self.quiet = quiet
         self.invisible = invisible
-        self.drawTracks = True
         self.drawContours = draw_contours
+        self.threshold = bgsub_thresh
+        self.drawTracks = True
         self.drawFrameNum = False
 
         self.areas = []
 
         # Learn the bg
-        self.threshold = bgsub_thresh
-        self.operator = cv2.BackgroundSubtractorMOG2(2000, self.threshold, True)
-        model_bg2(video_src, self.operator)
+        self.operator = BackgroundSubtractor(2000, self.threshold, True)
+        self.operator.model_bg2(video_src)
 
         self.track_len = 10
         self.detect_interval = 5
@@ -57,7 +57,6 @@ class App:
     def run(self, as_script=True):
         if self.invisible:
             cv2.namedWindow("Control")
-        # cv2.waitKey()
 
         prev_gray = None
         prev_points = None
@@ -66,11 +65,10 @@ class App:
             ret, frame = self.cam.read()
             if not ret:
                 break
+
             fg_mask = self.operator.apply(frame, learningRate=-1)
             fg_mask = ((fg_mask == 255) * 255).astype(np.uint8)
             fg_mask = morph_openclose(fg_mask)
-            # blob_centers(fg_mask, frame, True)
-
 
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -125,7 +123,6 @@ class App:
             
             areas, prev_points = drawing.draw_min_ellipse(contours, frame, MIN_AREA, MAX_AREA)
             self.areas += areas
-
 
             ######################
             # prev_points = []
