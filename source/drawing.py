@@ -49,7 +49,7 @@ def draw_min_ellipse(contours, frame, minArea, maxArea):
         areas.append(area)
         if minArea < area < maxArea:
             cv2.ellipse(frame, ellipse, color=BLUE)
-            center = tuple([int(x) for x in ellipse[0]])
+            center = tuple([np.int32(x) for x in ellipse[0]])
             cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
             centers.append(center)
     return areas, centers

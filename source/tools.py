@@ -53,11 +53,13 @@ def cross(rect, width, height, pt0, pt1):
         else:
             return 0
 
-def assignment(costMatrix, costOfNonAssignment=20):
+def assignment(costMatrix, costOfNonAssignment=120):
     Assignment = namedtuple('Assignment', 'trackIndex detectionIndex')
     assignments = []
     unmatchedTracks = []
     unmatchedDetections = []
+
+    # print(costMatrix)
 
     # If matrix is rectangular, then pad
     rows, cols = costMatrix.shape
@@ -78,9 +80,9 @@ def assignment(costMatrix, costOfNonAssignment=20):
         trackIndex = row[0]
         detectionIndex =  row[1]
         if costMatrix[trackIndex, detectionIndex] > costOfNonAssignment:
-            if trackIndex <= rows:
+            if trackIndex < rows:
                 unmatchedTracks.append(trackIndex)
-            if detectionIndex <= cols:
+            if detectionIndex < cols:
                 unmatchedDetections.append(detectionIndex)
         else:
             assignments.append(Assignment(trackIndex, detectionIndex))
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     a = np.array([[1, 2, 3],
                   [4, 5, 6]])
     b = np.array([[1, 2],
-                  [3, 4],
+                  [4, 4],
                   [5, 6]])
-    assignTracks(a)
-    assignTracks(b)
+    assignment(a)
+    assignment(b)

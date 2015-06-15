@@ -170,9 +170,9 @@ def main():
     print(__name__)
     clock()
     # video_src = "../videos/whitebg.h264"
-    video_src = "../videos/newhive_noshadow3pm.h264"
+    # video_src = "../videos/newhive_noshadow3pm.h264"
     # video_src = "../videos/video1.mkv"
-    # video_src = "../videos/newhive_shadow2pm.h264"
+    video_src = "../videos/newhive_shadow2pm.h264"
 
 
     app = App(video_src, invisible=False, bgsub_thresh=64)

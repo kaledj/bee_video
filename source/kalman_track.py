@@ -13,7 +13,7 @@ import sys
 from time import clock
 from matplotlib import pyplot
 from collections import namedtuple
-from pykalman import KalmanFilter
+# from pykalman import KalmanFilter
 
 # Project
 import tools 
@@ -31,26 +31,15 @@ MIN_AREA = 200
 MAX_AREA = 1500
 
 
-kf_params = dict(transition_matrices = np.array([[1, 0, 1, 0], 
-                                                 [0, 1, 0, 1],
-                                                 [0, 0, 1, 0],
-                                                 [0, 0, 0, 1]], np.float32),
+TRANSITION_MATRIX = np.array([[1, 0, 1, 0], 
+                              [0, 1, 0, 1],
+                              [0, 0, 1, 0],
+                              [0, 0, 0, 1]], np.float32)
 
-                 observation_matrices = np.array([[1, 0], 
-                                                  [0, 1]], np.float32),
-         
-                 transition_covariance = 10 * np.array([[1, 0, 1, 0], 
-                                                        [0, 1, 0, 1],
-                                                        [0, 0, 1, 0],
-                                                        [0, 0, 0, 1]], np.float32),
-         
-                 observation_covariance = 10 * np.array([[1, 0], 
-                                                         [0, 1]], np.float32),
-         
-                 transition_offsets = np.array([0, 0, 0, 0], np.float32),
-         
-                 observation_offsets = np.array([0, 0], np.float32)
-            )
+MEASUREMENT_MATRIX = np.array([[1, 0, 0, 0], 
+                               [0, 1, 0, 0]], np.float32)
+
+
 
 
 class App:
@@ -71,8 +60,8 @@ class App:
 
         self.cam = cv2.VideoCapture(video_src)
         
-        self.maxTimeInvisible = 20
-        self.trackAgeThreshold = 8
+        self.maxTimeInvisible = 8
+        self.trackAgeThreshold = 4
 
         self.tracks = []
         self.frame_idx = 0
@@ -84,7 +73,7 @@ class App:
 
         prev_gray = None
         prev_points = []
-        nextTrackID = 0
+        self.nextTrackID = 0
         
         while True:
             # Get frame
@@ -99,19 +88,19 @@ class App:
             fg_mask = morph_openclose(fg_mask)
             
             # Detect blobs
-            contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
+            _, contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
                 cv2.CHAIN_APPROX_TC89_L1)
             areas, detections = drawing.draw_min_ellipse(contours, frame, MIN_AREA, MAX_AREA)
             self.areas += areas
 
             # Track
-            self.predictNewLocations()
-            assignments, unmatchedTracks, unmatchedDetections = self.assignTracks(detections)
+            self.predictNewLocations(frame)
+            assignments, unmatchedTracks, unmatchedDetections = self.assignTracks(detections, frame)
             self.updateMatchedTracks(assignments, detections)
             self.updateUnmatchedTracks(unmatchedTracks)
             self.deleteLostTracks()
-            self.createNewTracks(unmatchedDetections)
-            self.showTracks()
+            self.createNewTracks(detections, unmatchedDetections)
+            self.showTracks(frame)
 
             # Store frame and go to next
             prev_gray = frame_gray
@@ -121,7 +110,7 @@ class App:
                 self.draw_overlays(frame, fg_mask)
                 cv2.imshow('Tracking', frame)
                 cv2.imshow("Mask", fg_mask)
-                delay = 100
+                delay = 50
             else:
                 delay = 1
             if handle_keys(delay) == 1:
@@ -133,7 +122,8 @@ class App:
 
     def deleteLostTracks(self):
         newTracks = []
-        for index, track in self.tracks:
+        tracksLost = 0
+        for track in self.tracks:
             # Fraction of tracks age in which is was visible
             visibilty = float(track.totalVisibleCount) / track.age
 
@@ -141,27 +131,24 @@ class App:
             if not ((track.age < self.trackAgeThreshold and visibilty < .6) or
                     (track.timeInvisible > self.maxTimeInvisible)):
                 newTracks.append(track)
+            else:
+                tracksLost += 1
+        # print("Tracks lost", tracksLost)        
         self.tracks = newTracks
 
-    def createNewTracks(self, unmatchedDetections):
-        for detection in unmatchedDetections:
+    def createNewTracks(self, detections, unmatchedDetections):
+        for detectionIndex in unmatchedDetections:
+            detection = detections[detectionIndex]
+            array_detection = np.array(detection, np.float32)
             # TODO: Create Kalman filter object
-            initial_state_mean = np.array(detection + (1, 1))
-            initial_state_covariance = 10 * np.eye(4)
-            print(kf_params['transition_matrices'].shape)
-            print(kf_params['observation_matrices'].shape)
-            print(kf_params['transition_covariance'].shape)
-            print(kf_params['observation_covariance'].shape)
-            print(kf_params['transition_offsets'].shape)
-            print(kf_params['observation_offsets'].shape)
-            print(initial_state_mean.shape)
-            cv2.waitKey(10)
-            kf = KalmanFilter(initial_state_mean=initial_state_mean, 
-                              initial_state_covariance=initial_state_covariance,
-                              **kf_params) 
+            kf = cv2.KalmanFilter(4, 2)
+            kf.measurementMatrix = MEASUREMENT_MATRIX
+            kf.transitionMatrix = TRANSITION_MATRIX
+            # kf.processNoiseCov = PROCESS_NOISE_COV
 
             # Create the new track
-            newTrack = Track(nextTrackID, kf)
+            newTrack = Track(self.nextTrackID, kf)
+            newTrack.update(array_detection)
             newTrack.locationHistory.append(detection)
             self.tracks.append(newTrack)
             self.nextTrackID += 1
@@ -170,17 +157,12 @@ class App:
         for assignment in assignments:
             trackIndex = assignment.trackIndex
             detectionIndex = assignment.detectionIndex
-            detection = np.array(detections[detectionIndex])
+            detection = detections[detectionIndex]
+            array_detection = np.array(detection, np.float32)
             track = self.tracks[trackIndex]
 
             # TODO: Correct the estimate using current detection location
-            if track.age == 0:
-                filtered_state_mean = track.kalmanFilter.initial_state_mean
-                filtered_state_covariance = track.kalmanFilter.initial_state_covariance
-            else:
-                filtered_state_mean = track.kalmanFilter.predicted_state_mean
-                filtered_state_covariance = track.kalmanFilter.predicted_state_covariance
-            track.update(filtered_state_mean, filtered_state_covariance, detection)
+            track.update(array_detection)
 
             # Update track
             track.age += 1
@@ -194,29 +176,33 @@ class App:
             tr.age += 1
             tr.timeInvisible += 1
 
-    def assignTracks(self, detections):
+    def assignTracks(self, detections, frame):
         """ Returns assignments, unmatchedTracks, unmatchedDetections """
         if len(self.tracks) == 0:
             # There are no tracks, all detections are unmatched
-            return [], [], detections
+            unmatchedDetections = range(len(detections))
+            return [], [], unmatchedDetections
         elif len(detections) == 0:
             # There are no detections, all tracks are unmatched
-            return [], self.tracks, []
+            unmatchedTracks = range(len(self.tracks))
+            return [], unmatchedTracks, []
         else:
             costMatrix = np.zeros((len(self.tracks), len(detections)))
             for i, track in enumerate(self.tracks):
-                x1, y1 = track.kalmanFilter.getPredictedXY()
+                x1, y1 = track.getPredictedXY()
                 for j, (x2, y2) in enumerate(detections):
+                    # cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0))
                     costMatrix[i, j] = np.sqrt( (x1 - x2)**2 + (y1 - y2)**2 )
             return tools.assignment(costMatrix)
 
-    def predictNewLocations(self):
+    def predictNewLocations(self, frame):
         for track in self.tracks:
-            track.predict()
+            track.predict(frame)
 
-    def showTracks(self):
-        for track in self.tracks:
-            track.drawTrack()
+    def showTracks(self, frame):
+        if self.drawTracks:
+            for track in self.tracks:
+                track.drawTrack(frame)
 
     def draw_overlays(self, frame, fg_mask):
         drawing.draw_rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H))
@@ -236,30 +222,50 @@ class Track(object):
         self.totalVisibleCount = 1
         self.timeInvisible = 0
         self.locationHistory = []
+        self.predictionHistory = []
+        self.numCorrections = 0
 
     def getPredictedXY(self):
-        x = self.predicted_state_mean[0]
-        y = self.predicted_state_mean[1]
+        x = np.int32(self.prediction[0])
+        y = np.int32(self.prediction[1])
         return x, y
 
-    def predict():
-        pass
+    def predict(self, frame):
+        pred = self.kalmanFilter.predict()
+        if self.numCorrections < 3:
+            pred = self.locationHistory[-1]
+        self.prediction = pred
+        x = np.int32(pred[0])
+        y = np.int32(pred[1])
+        # cv2.putText(frame, str(self.id), (x, y), fontFace=cv2.FONT_HERSHEY_COMPLEX, 
+        #     fontScale=.5, color=(0, 255, 0))
+        self.predictionHistory.append((x, y))
+        return x, y
 
-    def update(self, fsm, fsc, detection):
-        self.predicted_state_mean, self.predicted_state_covariance = (
-            self.kalmanFilter.filter_update(fsm, fsc, detection) )
+    def update(self, detection):
+        self.kalmanFilter.correct(detection)
+        self.numCorrections += 1
 
     def drawTrack(self, frame):
-        cv2.polyLines(frame, [np.int32(loc) for loc in locationHistory], False, GREEN)
+        if self.timeInvisible < 4:
+            lh = self.locationHistory
+            ph = self.predictionHistory
+            for i in range(len(lh)- 1):
+                cv2.line(frame, lh[i], lh[i + 1], (0, 0, 255))   
+            for i in range(len(ph) - 1):
+                cv2.line(frame, ph[i], ph[i + 1], (0, 255, 0))        
+            cv2.putText(frame, str(self.id), self.locationHistory[-1], 
+                fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=.5, color=(0, 0, 255))
 
 
 def main():
+    print("OpenCV version: {0}".format(cv2.__version__))
     clock()
     videos = []
-    # video_src = "../videos/whitebg.h264"
+    # videos.append("../videos/whitebg.h264")
     videos.append("../videos/newhive_noshadow3pm.h264")
     # video_src = "../videos/video1.mkv"
-    # videos.append("../videos/newhive_shadow2pm.h264")
+    videos.append("../videos/newhive_shadow2pm.h264")
 
     for video_src in videos:
         app = App(video_src, invisible=False, bgsub_thresh=64)

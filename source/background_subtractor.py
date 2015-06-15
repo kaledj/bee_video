@@ -8,10 +8,10 @@ class BackgroundSubtractor(object):
 		self.detectShadows = detectShadows
 
 		version = cv2.__version__
-		if version == '2.4.9':
+		if '2.4.' in version:
 			self.operator = cv2.BackgroundSubtractorMOG2(self.history,
 				self.threshold, self.detectShadows)
-		elif version == '3.0.0':
+		elif '3.0.0' in version:
 			self.operator = cv2.createBackgroundSubtractorMOG2(self.history,
 				self.threshold, self.detectShadows)
 		else:
