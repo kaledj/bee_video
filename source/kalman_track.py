@@ -16,6 +16,7 @@ from collections import namedtuple
 # from pykalman import KalmanFilter
 
 # Project
+from track import Track
 import tools 
 from tools import model_bg2, morph_openclose, cross, handle_keys
 import drawing
@@ -23,13 +24,14 @@ from drawing import GREEN, RED, BLUE
 import keys
 from background_subtractor import BackgroundSubtractor
 
-ROI = (50, 200)
-ROI_W = 500
+ROI = (100, 250)
+ROI_W = 370
 ROI_H = 200
 
 MIN_AREA = 200
 MAX_AREA = 1500
 
+FRAME_DELAY = 100
 
 TRANSITION_MATRIX = np.array([[1, 0, 1, 0], 
                               [0, 1, 0, 1],
@@ -38,8 +40,6 @@ TRANSITION_MATRIX = np.array([[1, 0, 1, 0],
 
 MEASUREMENT_MATRIX = np.array([[1, 0, 0, 0], 
                                [0, 1, 0, 0]], np.float32)
-
-
 
 
 class App:
@@ -60,10 +60,11 @@ class App:
 
         self.cam = cv2.VideoCapture(video_src)
         
-        self.maxTimeInvisible = 8
+        self.maxTimeInvisible = 0
         self.trackAgeThreshold = 4
 
         self.tracks = []
+        self.lostTracks = []
         self.frame_idx = 0
         self.arrivals = self.departures = 0
 
@@ -101,6 +102,8 @@ class App:
             self.deleteLostTracks()
             self.createNewTracks(detections, unmatchedDetections)
             self.showTracks(frame)
+            # self.showLostTracks(frame)
+            self.checkTrackCrosses()
 
             # Store frame and go to next
             prev_gray = frame_gray
@@ -110,15 +113,18 @@ class App:
                 self.draw_overlays(frame, fg_mask)
                 cv2.imshow('Tracking', frame)
                 cv2.imshow("Mask", fg_mask)
-                delay = 50
-            else:
-                delay = 1
-            if handle_keys(delay) == 1:
-                break
-            
+                delay = FRAME_DELAY
+                if handle_keys(delay) == 1:
+                    break
+            # else:
+            #     if handle_keys(delay) == 1:
+            #         break
+
             # Should we continue running or yield some information about the current frame
             if as_script: continue
             else: pass
+        # After the video, examine tracks
+        # self.checkLostTrackCrosses()
 
     def deleteLostTracks(self):
         newTracks = []
@@ -132,6 +138,7 @@ class App:
                     (track.timeInvisible > self.maxTimeInvisible)):
                 newTracks.append(track)
             else:
+                self.lostTracks.append(track)
                 tracksLost += 1
         # print("Tracks lost", tracksLost)        
         self.tracks = newTracks
@@ -161,7 +168,6 @@ class App:
             array_detection = np.array(detection, np.float32)
             track = self.tracks[trackIndex]
 
-            # TODO: Correct the estimate using current detection location
             track.update(array_detection)
 
             # Update track
@@ -204,6 +210,32 @@ class App:
             for track in self.tracks:
                 track.drawTrack(frame)
 
+    def showLostTracks(self, frame):
+        for track in self.lostTracks:
+            loc = track.locationHistory[-1]
+            cv2.circle(frame, loc, 2, color=(0,0,255), thickness=-1)
+
+    def checkTrackCrosses(self):
+        for track in self.tracks:
+            result = track.checkCrossLastTwo(ROI, ROI_W, ROI_H)
+            if result == 1:
+                self.arrivals += 1
+                # print("Arrival")
+            elif result == -1:
+                self.departures += 1
+                # print("Departure")
+
+    def checkLostTrackCrosses(self):
+        self.lostTracks += self.tracks
+        for track in self.lostTracks:
+            result = track.checkCross()
+            if result == 1:
+                self.arrivals += 1
+                # print("Arrival")
+            elif result == -1:
+                self.departures += 1
+                # print("Departure")
+
     def draw_overlays(self, frame, fg_mask):
         drawing.draw_rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H))
         if self.drawFrameNum:
@@ -213,68 +245,33 @@ class App:
             # drawing.draw_contours(frame, fg_mask)
 
 
-class Track(object):
-    """Represents the kalman filtered tracking history for an object"""
-    def __init__(self, id, kalmanFilter):
-        self.id = id
-        self.kalmanFilter = kalmanFilter
-        self.age = 0
-        self.totalVisibleCount = 1
-        self.timeInvisible = 0
-        self.locationHistory = []
-        self.predictionHistory = []
-        self.numCorrections = 0
-
-    def getPredictedXY(self):
-        x = np.int32(self.prediction[0])
-        y = np.int32(self.prediction[1])
-        return x, y
-
-    def predict(self, frame):
-        pred = self.kalmanFilter.predict()
-        if self.numCorrections < 3:
-            pred = self.locationHistory[-1]
-        self.prediction = pred
-        x = np.int32(pred[0])
-        y = np.int32(pred[1])
-        # cv2.putText(frame, str(self.id), (x, y), fontFace=cv2.FONT_HERSHEY_COMPLEX, 
-        #     fontScale=.5, color=(0, 255, 0))
-        self.predictionHistory.append((x, y))
-        return x, y
-
-    def update(self, detection):
-        self.kalmanFilter.correct(detection)
-        self.numCorrections += 1
-
-    def drawTrack(self, frame):
-        if self.timeInvisible < 4:
-            lh = self.locationHistory
-            ph = self.predictionHistory
-            for i in range(len(lh)- 1):
-                cv2.line(frame, lh[i], lh[i + 1], (0, 0, 255))   
-            for i in range(len(ph) - 1):
-                cv2.line(frame, ph[i], ph[i + 1], (0, 255, 0))        
-            cv2.putText(frame, str(self.id), self.locationHistory[-1], 
-                fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=.5, color=(0, 0, 255))
-
-
 def main():
     print("OpenCV version: {0}".format(cv2.__version__))
     clock()
     videos = []
+    # videos.append("../videos/crowded_4pm.h264")
+    # videos.append("../videos/crowded_7am.h264")
+    # videos.append("../videos/rpi2.h264")
+    # videos.append("../videos/video1.mkv")
     # videos.append("../videos/whitebg.h264")
     videos.append("../videos/newhive_noshadow3pm.h264")
-    # video_src = "../videos/video1.mkv"
-    videos.append("../videos/newhive_shadow2pm.h264")
+    # videos.append("../videos/newhive_shadow2pm.h264")
+
 
     for video_src in videos:
         app = App(video_src, invisible=False, bgsub_thresh=64)
         app.run()
+        print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
+        print(len(app.lostTracks))
         cv2.destroyAllWindows()
+        print(app.frame_idx)
+        timeElapsed = clock()
+        print("{0} seconds elapsed.".format(timeElapsed))
+        print("FPS: {0}".format(float(app.frame_idx) / timeElapsed))
         continue
 
         # Calculate area histograms
-        h, w = 2, 4    
+        h, w = 2, 2    
         f, axarr = pyplot.subplots(h, w)
         for i in xrange(h):
             for j in xrange(w):
@@ -284,10 +281,29 @@ def main():
                 axarr[i, j].set_title(
                     "Threshold: {0}  Detections: {1}".format(app.threshold, len(areas)))
                 axarr[i, j].hist(areas, 50, range=(0, 2000))
+                axarr[i, j].set_xlabel("Area, pixels")
+                axarr[i, j].set_ylabel("Occurances")
                 cv2.destroyAllWindows()
                 print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
                 print("{0} seconds elapsed.".format(clock()))
-        pyplot.suptitle('Areas of detections in {0}'.format(video_src))
+        pyplot.suptitle('Areas and Counts of Detections in {0}'.format(video_src))
+        
+        f, axarr = pyplot.subplots(h, w)
+        for i in xrange(h):
+            for j in xrange(w):
+                app = App(video_src, invisible=True, bgsub_thresh=2**(i*w+j+6))
+                app.run()
+                areas = app.areas
+                axarr[i, j].set_title(
+                    "Threshold: {0}  Detections: {1}".format(app.threshold, len(areas)))
+                axarr[i, j].hist(areas, 50, range=(0, 2000))
+                axarr[i, j].set_xlabel("Area, pixels")
+                axarr[i, j].set_ylabel("Occurances")
+                cv2.destroyAllWindows()
+                print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
+                print("{0} seconds elapsed.".format(clock()))
+        pyplot.suptitle('Areas and Counts of Detections in {0}'.format(video_src))
+
         pyplot.show()
 
 if __name__ == '__main__':

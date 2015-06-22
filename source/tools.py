@@ -53,7 +53,7 @@ def cross(rect, width, height, pt0, pt1):
         else:
             return 0
 
-def assignment(costMatrix, costOfNonAssignment=120):
+def assignment(costMatrix, costOfNonAssignment=140):
     Assignment = namedtuple('Assignment', 'trackIndex detectionIndex')
     assignments = []
     unmatchedTracks = []

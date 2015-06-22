@@ -8,6 +8,19 @@ any recomputation.
 
 import cv2
 from video_loader import load_local
+import kalman_track
+
+def save_video(outputFilename):
+    fourcc = cv2.VideoWriter_fourcc('F','M','P','4')
+    # fourcc = cv2.VideoWriter_fourcc('X','2','6','4')
+    # fourcc = cv2.VideoWriter_fourcc('M','P','4','2')
+    writer = cv2.VideoWriter()
+    writer.open(outputFilename, fourcc, 24, (640, 480))
+    print(writer.isOpened())
+    kt = kalman_track.App("../videos/newhive_noshadow3pm.h264", invisible=True)
+    for frame in kt.run(False):
+        writer.write(frame)
+
 
 def save_locally(inputfilename, outfilename):
     # Set up input stream and get info
@@ -36,3 +49,7 @@ def save_locally(inputfilename, outfilename):
         output.write(frame)
     vidcapture.release()
     output.release()
+
+
+if __name__ == '__main__':
+    save_video('testout.mkv')
