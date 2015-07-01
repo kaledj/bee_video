@@ -135,7 +135,8 @@ def blob_detect(mask, frame):
 
 
 if __name__ == '__main__':
-    test_videoname = "whitebg.h264"
+    # test_videoname = "whitebg.h264"
+    test_videoname = "newhive_noshadow3pm.h264"
 
     detection_rates = {'tp': [], 'fp': []}
 
@@ -145,5 +146,5 @@ if __name__ == '__main__':
     for videofile in videos:
         if os.path.isfile(videofile):
             print("Opening: {0} ({1})".format(os.path.basename(videofile), videofile))
-            # cascade_detect(os.path.basename(videofile))
-            bgsub(os.path.basename(videofile), 16)
+            cascade_detect(os.path.basename(videofile))
+            # bgsub(os.path.basename(videofile), 16)

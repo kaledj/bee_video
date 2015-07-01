@@ -12,8 +12,9 @@ import keys
 import cv2, os, sys
 import numpy as np
 
-# ROI = {"tlcorner": (50, 50), "brcorner":(150, 150)}
-ROI = (230, 230)
+ROI = (100, 250)
+ROI_W = 370
+ROI_H = 200
 
 def drawMatches(img1, kp1, img2, kp2, matches):
     """
@@ -92,7 +93,7 @@ def cascadeDetect(vidfilename, min_neighbors=2):
         for (x, y, w, h) in bees:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
             center = (x+(w/2), y+(h/2))
-        cv2.rectangle(frame, ROI, (ROI[0]+400, ROI[1]+230), (0, 255, 0), 2)
+        cv2.rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H), (0, 255, 0), 2)
         cv2.imshow("Video", frame)
         ret, frame = video.read()
         key = cv2.waitKey(1)
@@ -175,9 +176,11 @@ def exit():
 
 if __name__ == '__main__':
     videos = []
-    for filename in os.listdir("../videos"):
-        videos.append("../videos/" + filename)
+    videos.append("../videos/newhive_noshadow3pm.h264")
+    # for filename in os.listdir("../videos"):
+    #     videos.append("../videos/" + filename)
     for videofile in videos:
         if os.path.isfile(videofile):
-            cascadeDetect(videofile)    
-            # surfDetect(videofile)
+            cascadeDetect(videofile, min_neighbors=4)    
+        else:
+            print("%s not found." % videofile)

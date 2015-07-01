@@ -31,7 +31,7 @@ ROI_H = 200
 MIN_AREA = 200
 MAX_AREA = 1500
 
-FRAME_DELAY = 100
+FRAME_DELAY = 33
 
 TRANSITION_MATRIX = np.array([[1, 0, 1, 0], 
                               [0, 1, 0, 1],
@@ -43,7 +43,7 @@ MEASUREMENT_MATRIX = np.array([[1, 0, 0, 0],
 
 
 class App:
-    def __init__(self, video_src, quiet=False, invisible=False, draw_contours=True, 
+    def __init__(self, video_src="", quiet=False, invisible=False, draw_contours=True, 
                  bgsub_thresh=64, drawTracks=True, drawFrameNum=False):
         self.quiet = quiet
         self.invisible = invisible
@@ -84,7 +84,7 @@ class App:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
             # Segment
-            fg_mask = self.operator.apply(frame, learningRate=-1)
+            fg_mask = self.operator.apply(frame)
             fg_mask = ((fg_mask == 255) * 255).astype(np.uint8)
             fg_mask = morph_openclose(fg_mask)
             
@@ -125,6 +125,7 @@ class App:
             else: pass
         # After the video, examine tracks
         # self.checkLostTrackCrosses()
+        self.cam.release()
 
     def deleteLostTracks(self):
         newTracks = []
@@ -244,6 +245,10 @@ class App:
             pass
             # drawing.draw_contours(frame, fg_mask)
 
+    def openNewVideo(self, video_src):
+        self.cam.release()
+        self.cam = cv2.VideoCapture(video_src)
+
 
 def main():
     print("OpenCV version: {0}".format(cv2.__version__))
@@ -262,49 +267,12 @@ def main():
         app = App(video_src, invisible=False, bgsub_thresh=64)
         app.run()
         print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
-        print(len(app.lostTracks))
         cv2.destroyAllWindows()
-        print(app.frame_idx)
         timeElapsed = clock()
         print("{0} seconds elapsed.".format(timeElapsed))
         print("FPS: {0}".format(float(app.frame_idx) / timeElapsed))
         continue
 
-        # Calculate area histograms
-        h, w = 2, 2    
-        f, axarr = pyplot.subplots(h, w)
-        for i in xrange(h):
-            for j in xrange(w):
-                app = App(video_src, invisible=True, bgsub_thresh=2**(i*w+j+2))
-                app.run()
-                areas = app.areas
-                axarr[i, j].set_title(
-                    "Threshold: {0}  Detections: {1}".format(app.threshold, len(areas)))
-                axarr[i, j].hist(areas, 50, range=(0, 2000))
-                axarr[i, j].set_xlabel("Area, pixels")
-                axarr[i, j].set_ylabel("Occurances")
-                cv2.destroyAllWindows()
-                print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
-                print("{0} seconds elapsed.".format(clock()))
-        pyplot.suptitle('Areas and Counts of Detections in {0}'.format(video_src))
-        
-        f, axarr = pyplot.subplots(h, w)
-        for i in xrange(h):
-            for j in xrange(w):
-                app = App(video_src, invisible=True, bgsub_thresh=2**(i*w+j+6))
-                app.run()
-                areas = app.areas
-                axarr[i, j].set_title(
-                    "Threshold: {0}  Detections: {1}".format(app.threshold, len(areas)))
-                axarr[i, j].hist(areas, 50, range=(0, 2000))
-                axarr[i, j].set_xlabel("Area, pixels")
-                axarr[i, j].set_ylabel("Occurances")
-                cv2.destroyAllWindows()
-                print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
-                print("{0} seconds elapsed.".format(clock()))
-        pyplot.suptitle('Areas and Counts of Detections in {0}'.format(video_src))
-
-        pyplot.show()
 
 if __name__ == '__main__':
     main()

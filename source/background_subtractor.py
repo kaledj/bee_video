@@ -23,10 +23,10 @@ class BackgroundSubtractor(object):
 	    for _ in range(N):
 	        ret, frame = vidcapture.read()
 	        if ret:
-	            self.operator.apply(frame, learningRate=-1)
+	            self.operator.apply(frame)
 	        else:
 	            break
 	    vidcapture.release()
 
 	def apply(self, *args, **kwargs):
-		return self.operator.apply(*args, **kwargs)
+		return self.operator.apply(*args, learningRate=-1, **kwargs)

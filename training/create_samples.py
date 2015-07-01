@@ -12,7 +12,7 @@ OPENCV_BIN = "C:/lib/opencv/build/x64/vc12/bin/"
 PROGRAM = "opencv_createsamples.exe"
 COLLECTION_FILE = "../annotations.dat"
 OUTPUT_FILE = "../samples/test.vec"
-INPUT_SAMPLE = "../samples/positive/img4.png"
+INPUT_SAMPLE = "../samples/positive/img4seg.png"
 PARAMS = {  "-vec": OUTPUT_FILE,
             "-info": COLLECTION_FILE,
             "-img": INPUT_SAMPLE,
@@ -23,7 +23,9 @@ PARAMS = {  "-vec": OUTPUT_FILE,
             "-maxidev": 20,
             "-maxxangle": .5,
             "-maxyangle": .5,
-            "-maxzangle": .8}
+            "-maxzangle": .8,
+            "-bgcolor": 0,
+            "-bgthresh": 10}
 
 command = OPENCV_BIN + PROGRAM
 for key in PARAMS:

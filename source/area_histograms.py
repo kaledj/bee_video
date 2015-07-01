@@ -7,12 +7,12 @@ def main():
     print("OpenCV version: {0}".format(cv2.__version__))
     clock()
     videos = []
-    # videos.append("../videos/crowded_4pm.h264")
+    videos.append("../videos/crowded_4pm.h264")
     # videos.append("../videos/crowded_7am.h264")
     # videos.append("../videos/rpi2.h264")
     # videos.append("../videos/video1.mkv")
     # videos.append("../videos/whitebg.h264")
-    videos.append("../videos/newhive_noshadow3pm.h264")
+    # videos.append("../videos/newhive_noshadow3pm.h264")
     # videos.append("../videos/newhive_shadow2pm.h264")
 
 
