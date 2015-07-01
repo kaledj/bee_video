@@ -38,7 +38,7 @@ class App:
         self.invisible = invisible
         self.drawContours = draw_contours
         self.threshold = bgsub_thresh
-        self.drawTracks = True
+        self.drawTracks = False
         self.drawFrameNum = False
 
         self.areas = []
