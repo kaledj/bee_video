@@ -89,8 +89,12 @@ class App:
             fg_mask = morph_openclose(fg_mask)
             
             # Detect blobs
-            _, contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
-                cv2.CHAIN_APPROX_TC89_L1)
+            if "3.0." in cv2.__version__:
+                _, contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
+                    cv2.CHAIN_APPROX_TC89_L1)
+            else:
+                contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
+                    cv2.CHAIN_APPROX_TC89_L1)
             areas, detections = drawing.draw_min_ellipse(contours, frame, MIN_AREA, MAX_AREA)
             self.areas += areas
 
