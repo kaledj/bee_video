@@ -4,20 +4,31 @@ import os
 from kalman_track import App
 import cv2
 import time
+from threading import Timer
 import tools
+import sys
 
 files = []
 dirs = []
 
+totalFlow = 0
 arrivals = []
 departures = []
+times = []
+totalFlowSamples = []
 
 def main():
+    global totalFlow
+    log = open("Log.txt", "w")
+    logCurrentFlow(log)
+    lastTimeStamp = -1
+    time.clock()
     user = 'bee'
     pw = 'cs.13,bee'
     ftp = FTP('cs.appstate.edu', user, pw)
 
     running = True
+
     lastVideo = None
     lastWait = 256
     app = App()
@@ -37,7 +48,7 @@ def main():
             waitTime = lastWait * 2
             print("Waiting for {0}ms for next video".format(waitTime))
             if tools.handle_keys(waitTime) == 1: 
-                return "Test"
+                break
             lastWait = waitTime
             continue
         else:
@@ -51,15 +62,19 @@ def main():
         cv2.namedWindow('Tracking')
         cv2.namedWindow('Mask')
         app.run()
+        totalFlow += app.arrivals
+        totalFlow -= app.departures
         arrivals.append(app.arrivals)
         departures.append(app.departures)
-        print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
+
+        # print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
 
         os.remove('tempfile.h264')
         del(files[:])
         del(dirs[:])
         lastVideo = newestFile
     ftp.quit()
+    log.close()
 
 def splitDirLine(string):
     directoryName = string.split()[-1]
@@ -87,6 +102,12 @@ def sortFilesByTime(files):
     # Sort by hour
     files.sort(key=lambda fileName: fileName.split('_')[1].split(':')[0], reverse=True)
 
+def logCurrentFlow(log):
+    log.write("Logging {0} total flow".format(totalFlow))
+    totalFlowSamples.append(totalFlow)
+    Timer(10, logCurrentFlow, log).start()
+
 if __name__ == '__main__':
-    print(main())
+    main()
     print(arrivals, departures)
+    sys.exit()
