@@ -9,6 +9,9 @@ import tools
 files = []
 dirs = []
 
+arrivals = []
+departures = []
+
 def main():
     user = 'bee'
     pw = 'cs.13,bee'
@@ -34,7 +37,7 @@ def main():
             waitTime = lastWait * 2
             print("Waiting for {0}ms for next video".format(waitTime))
             if tools.handle_keys(waitTime) == 1: 
-                break
+                return "Test"
             lastWait = waitTime
             continue
         else:
@@ -48,6 +51,8 @@ def main():
         cv2.namedWindow('Tracking')
         cv2.namedWindow('Mask')
         app.run()
+        arrivals.append(app.arrivals)
+        departures.append(app.departures)
         print("Arrivals: {0} Departures: {1}".format(app.arrivals, app.departures))
 
         os.remove('tempfile.h264')
@@ -83,4 +88,5 @@ def sortFilesByTime(files):
     files.sort(key=lambda fileName: fileName.split('_')[1].split(':')[0], reverse=True)
 
 if __name__ == '__main__':
-    main()
+    print(main())
+    print(arrivals, departures)

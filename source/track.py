@@ -41,7 +41,7 @@ class Track(object):
 
     def drawTrack(self, frame):
         drawActual = True
-        drawPredicted = False
+        drawPredicted = True
 
         if self.timeInvisible < PRESERVE_TRACKS_FOR:
             if drawActual:

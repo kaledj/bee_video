@@ -24,9 +24,9 @@ from drawing import GREEN, RED, BLUE
 import keys
 from background_subtractor import BackgroundSubtractor
 
-ROI = (100, 250)
+ROI = (100, 150)
 ROI_W = 370
-ROI_H = 200
+ROI_H = 250
 
 MIN_AREA = 200
 MAX_AREA = 1500
