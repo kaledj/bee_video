@@ -1,3 +1,12 @@
+"""
+Live Mode
+=========
+
+Repeatedly process the most recent video available on the server. 
+
+Requires: OpenCV 3+
+"""
+
 import re
 from ftplib import FTP
 import os
