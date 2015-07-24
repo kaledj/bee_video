@@ -43,14 +43,15 @@ MEASUREMENT_MATRIX = np.array([[1, 0, 0, 0],
 
 
 class App:
-    def __init__(self, video_src="", quiet=False, invisible=False, draw_contours=True, 
-                 bgsub_thresh=64, drawTracks=True, drawFrameNum=False):
+    def __init__(self, video_src="", quiet=False, invisible=False, draw_contours=False, 
+                 bgsub_thresh=64, drawTracks=False, drawFrameNum=False, drawBoundary=False):
         self.quiet = quiet
         self.invisible = invisible
         self.drawContours = draw_contours
         self.threshold = bgsub_thresh
         self.drawTracks = drawTracks
         self.drawFrameNum = drawFrameNum
+        self.drawBoundary = drawBoundary
 
         self.areas = []
 
@@ -95,7 +96,7 @@ class App:
             else:
                 contours, _ = cv2.findContours((fg_mask.copy()), cv2.RETR_EXTERNAL, 
                     cv2.CHAIN_APPROX_TC89_L1)
-            areas, detections = drawing.draw_min_ellipse(contours, frame, MIN_AREA, MAX_AREA)
+            areas, detections = drawing.draw_min_ellipse(contours, frame, MIN_AREA, MAX_AREA, draw=False)
             self.areas += areas
 
             # Track
@@ -242,7 +243,8 @@ class App:
                 # print("Departure")
 
     def draw_overlays(self, frame, fg_mask):
-        drawing.draw_rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H))
+        if self.drawBoundary:
+            drawing.draw_rectangle(frame, ROI, (ROI[0]+ROI_W, ROI[1]+ROI_H))
         if self.drawFrameNum:
             drawing.draw_frame_num(frame, self.frame_idx)
         if self.drawContours:
@@ -263,8 +265,8 @@ def main():
     # videos.append("../videos/rpi2.h264")
     # videos.append("../videos/video1.mkv")
     # videos.append("../videos/whitebg.h264")
-    videos.append("../videos/newhive_noshadow3pm.h264")
-    # videos.append("../videos/newhive_shadow2pm.h264")
+    # videos.append("../videos/newhive_noshadow3pm.h264")
+    videos.append("../videos/newhive_shadow2pm.h264")
 
 
     for video_src in videos:

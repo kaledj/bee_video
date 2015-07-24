@@ -60,7 +60,7 @@ def false_negative(detector_response, actual_img, cascade=False, thresh=10):
 def area_recall(detector_response, actual_img, weightedSoFar=0, totalSoFar=0, eps=1e-7):
     tp = true_positive(detector_response, actual_img)
     p = np.sum(actual_img)
-        rec = np.float64(tp) / (p + eps)
+    rec = np.float64(tp) / (p + eps)
     weighted = rec * p
     weightedSoFar += weighted
     totalSoFar += p

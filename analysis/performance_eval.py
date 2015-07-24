@@ -10,24 +10,24 @@ from multiprocessing import Process, Lock, Queue
 
 from source.bgsub_mog import bgsub, cascade_detect
 
-NUM_ITERS = 30
+NUM_ITERS = 32
 QUIET = True
 
-def eval_ROC(test_videoname):
-    detection_rates = {'tp': [], 'fp': []}
-    for i in xrange(10):
-        print("Testing with threshold {0}".format(2**i))
-        tp_rate, fp_rate = bgsub(os.path.basename(test_videoname), 2**i)
-        detection_rates['tp'].append(tp_rate)
-        detection_rates['fp'].append(fp_rate)
-    plt.figure()
-    plt.plot(detection_rates['fp'], detection_rates['tp'])
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.show()
-    print(detection_rates)
-    exit()
+# def eval_ROC(test_videoname):
+#     detection_rates = {'tp': [], 'fp': []}
+#     for i in xrange(10):
+#         print("Testing with threshold {0}".format(2**i))
+#         tp_rate, fp_rate = bgsub(os.path.basename(test_videoname), 2**i)
+#         detection_rates['tp'].append(tp_rate)
+#         detection_rates['fp'].append(fp_rate)
+#     plt.figure()
+#     plt.plot(detection_rates['fp'], detection_rates['tp'])
+#     plt.plot([0, 1], [0, 1], 'k--')
+#     plt.xlabel('False Positive Rate')
+#     plt.ylabel('True Positive Rate')
+#     plt.show()
+#     print(detection_rates)
+#     exit()
     
 
 def eval_PR(test_videoname, threshold, results_queue, threadlock, algorithm):
@@ -48,6 +48,7 @@ def eval_PR(test_videoname, threshold, results_queue, threadlock, algorithm):
 
 
 def run_multithreaded(videofile, algorithm, threshold_step):
+    time.clock()
     results_q = Queue()
     lock = Lock()
     procs = deque()
@@ -59,6 +60,8 @@ def run_multithreaded(videofile, algorithm, threshold_step):
         proc = Process(target=eval_PR, args=(videofile, threshold, results_q, 
             lock, algorithm), name=str(thresh))
         procs.append(proc)
+        print("Starting process {0} with {1} algorithm and threshold={2}".format(
+            proc.name, algorithm, threshold))
         proc.start()
     for proc_obj, join_func in ((proc, proc.join) for proc in procs):
         join_func()
@@ -82,26 +85,25 @@ def main():
     # videofile = 'newhive_noshadow3pm.h264'
 
     # Set up and create the figure
-    time.clock()
     plt.figure()
     plt.title('Precision-Recall Curve for Bee Detection')
 
     # Run with bgsub algorithm 
-    recall_rates, precision_rates = run_multithreaded(videofile, 'bgsub', 
-        threshold_step=1.4)    
-    plt.plot(recall_rates, precision_rates, label='Background sub. algorithm')
+    # recall_rates, precision_rates = run_multithreaded(videofile, 'bgsub', 
+        # threshold_step=1.3)    
+    # plt.plot(recall_rates, precision_rates)
 
     # Run with cascade detection algorithm
     recall_rates, precision_rates = run_multithreaded(videofile, 'cascade', 
         threshold_step=1)  
-    plt.plot(recall_rates, precision_rates, label='Cascade algorithm')
+    plt.plot(precision_rates, recall_rates)
 
     # Add labels and a diagonal dashed line
     plt.plot([0, 1], [1, 0], 'k--')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
-    plt.show()
+    plt.show() 
 
 
 if __name__ == '__main__':

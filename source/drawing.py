@@ -33,7 +33,7 @@ def draw_contours(frame, fg_mask):
     return contours, hierarchy
 
 
-def draw_min_ellipse(contours, frame, minArea, maxArea):
+def draw_min_ellipse(contours, frame, minArea, maxArea, draw=True):
     areas = []
     centers = []
     for contour in contours:
@@ -48,10 +48,11 @@ def draw_min_ellipse(contours, frame, minArea, maxArea):
         # print("Center: ", ellipse[0])
         areas.append(area)
         if minArea < area < maxArea:
-            cv2.ellipse(frame, ellipse, color=BLUE)
             center = tuple([np.int32(x) for x in ellipse[0]])
-            cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
             centers.append(center)
+            if draw:
+                cv2.ellipse(frame, ellipse, color=BLUE)
+                cv2.circle(frame, center, radius=4, color=BLUE, thickness=-1)
     return areas, centers
 
 

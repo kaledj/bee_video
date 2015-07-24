@@ -20,16 +20,18 @@ import tools
 from analysis.compare2truth import area_precision_recall
 from analysis.compare2truth import compare_response_to_truth
 from analysis import class_counter
+from background_subtractor import BackgroundSubtractor
 
 
-BGR2GRAY = cv2.cv.CV_BGR2GRAY
+BGR2GRAY = cv2.COLOR_BGR2GRAY
 GT_IMG_DIR = 'C:/Users/kaledj/Projects/SegmentationforCortina/images/'
 VIDEO_DIR = '../videos/'
 DRAW_BOXES = True
 
-def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
+def cascade_detect(vidfile_basename, min_neighbors, quiet=False):
     cascade = cv2.CascadeClassifier("../classifier/v2verticaldown/cascade.xml")
-
+    cascade2 = cv2.CascadeClassifier("../classifier/v2leftside/cascade.xml")
+    print(quiet)
     tp_t = fp_t = fn_t = 0
 
     video = cv2.VideoCapture(VIDEO_DIR + vidfile_basename)
@@ -37,9 +39,10 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
     frame_h, frame_w, _ = frame.shape
     frame_num = 0
     while ret:
-        gt_filename = "{0}/{1}/{2}.jpg.seg.bmp".format(GT_IMG_DIR, vidfile_basename, frame_num)
+        gt_filename = "{0}/{1}/{2}.jpg.seg.bmp".format(GT_IMG_DIR, vidfile_basename, 
+            frame_num)
 
-        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors)
+        bees = cascade.detectMultiScale(frame, minNeighbors=min_neighbors, scaleFactor=1.025)
         mask_binary = np.zeros((frame_h, frame_w))
         for x, y, w, h in bees:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
@@ -49,11 +52,11 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
             cv2.imshow("Frame- {0}".format(min_neighbors), frame)
 
         if os.path.exists(gt_filename):
-            # tp, fp, fn = compare_response_to_truth(mask_binary, gt_filename, cascade=True)
-            # tp_t += tp
-            # fp_t += fp
-            # fn_t += fn
-            precision, recall = area_precision_recall(mask_binary, gt_filename)
+            tp, fp, fn = compare_response_to_truth(mask_binary, gt_filename, cascade=True)
+            tp_t += tp
+            fp_t += fp
+            fn_t += fn
+            # precision, recall = area_precision_recall(mask_binary, gt_filename)
             if not quiet:
                 cv2.imshow("Ground truth", cv2.imread(gt_filename) * 255)
 
@@ -61,13 +64,21 @@ def cascade_detect(vidfile_basename, min_neighbors=2, quiet=False):
         frame_num += 1
         if handle_keys() is 1: break
 
+    with np.errstate(invalid='ignore'):
+        precision = np.float64(tp_t) / (tp_t + fp_t)
+        recall = np.float64(tp_t) / (tp_t + fn_t)
+    if np.isinf(precision) or np.isnan(precision):
+        precision = 1
+    if np.isinf(recall) or np.isnan(recall):
+        recall = 1
+
     return precision, recall
 
 
 def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
-    operator = cv2.BackgroundSubtractorMOG2(2000, threshold, True)
+    operator = BackgroundSubtractor(2000, threshold, True)
     # Learn the bg
-    tools.model_bg2(VIDEO_DIR + vidfile_basename, operator)
+    operator.model_bg2(VIDEO_DIR + vidfile_basename)
 
     tp_t = fp_t = fn_t = p_t = n_t = 0
 
@@ -75,7 +86,7 @@ def bgsub(vidfile_basename, threshold, quiet=False, drawBoxes=True):
     ret, frame = video.read()
     frame_num = 0
     while ret:
-        mask = operator.apply(frame, learningRate=-1)
+        mask = operator.apply(frame)
         mask = tools.morph_openclose(mask)
         mask_binary = (mask == 255).astype(np.uint8)
 
@@ -146,5 +157,5 @@ if __name__ == '__main__':
     for videofile in videos:
         if os.path.isfile(videofile):
             print("Opening: {0} ({1})".format(os.path.basename(videofile), videofile))
-            cascade_detect(os.path.basename(videofile))
+            cascade_detect(os.path.basename(videofile), 6)
             # bgsub(os.path.basename(videofile), 16)

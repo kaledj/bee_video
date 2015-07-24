@@ -19,8 +19,7 @@ totalFlowSamples = []
 
 def main():
     global totalFlow
-    log = open("Log.txt", "w")
-    logCurrentFlow(log)
+    log = open('Log.txt', 'w')
     lastTimeStamp = -1
     time.clock()
     user = 'bee'
@@ -64,6 +63,12 @@ def main():
         app.run()
         totalFlow += app.arrivals
         totalFlow -= app.departures
+
+        # Log
+        timeStr = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
+        logStr = "{0} {1}\n".format(timeStr, str(totalFlow))
+        log.write(logStr)
+        
         arrivals.append(app.arrivals)
         departures.append(app.departures)
 
